@@ -1,0 +1,11 @@
+schema: spec-driven
+context: |
+  Aplicação acadêmica de gestão de corretoras e ações.
+  Stack: Java 17, Spring Boot, Spring Security, JPA, Thymeleaf e bancos relacionais.
+  Todos os artefatos e mensagens de domínio devem ser escritos em português do Brasil.
+rules:
+  specs:
+    - Cada requisito deve possuir pelo menos um cenário verificável.
+    - Integrações externas devem permanecer isoladas por interfaces.
+  tasks:
+    - A conclusão exige compilação e testes automatizados aprovados.

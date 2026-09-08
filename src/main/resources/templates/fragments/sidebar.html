@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar" th:fragment="sidebar(active)">
+    <a class="brand" th:href="@{/dashboard}" aria-label="Página inicial">
+        <span class="brand-mark">C</span>
+        <span><strong>Carteira</strong><small>ações & mercados</small></span>
+    </a>
+
+    <nav class="side-nav" aria-label="Menu principal">
+        <span class="nav-label">VISÃO GERAL</span>
+        <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? ' active' : ''">
+            <span class="nav-icon">⌁</span> Dashboard
+        </a>
+        <span class="nav-label">GESTÃO</span>
+        <a th:href="@{/gestao/acoes}" th:classappend="${active == 'acoes'} ? ' active' : ''">
+            <span class="nav-icon">↗</span> Ativos
+        </a>
+        <a th:href="@{/gestao/negociacoes}" th:classappend="${active == 'negociacoes'} ? ' active' : ''">
+            <span class="nav-icon">⇄</span> Compras e vendas
+        </a>
+        <a th:href="@{/gestao/corretoras}" th:classappend="${active == 'corretoras'} ? ' active' : ''">
+            <span class="nav-icon">▦</span> Corretoras
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-chip">
+            <span class="avatar">U</span>
+            <span><strong sec:authentication="name">usuário</strong><small>Sessão protegida</small></span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button class="logout-button" type="submit" title="Sair">↪</button>
+        </form>
+    </div>
+</aside>
+</body>
+</html>

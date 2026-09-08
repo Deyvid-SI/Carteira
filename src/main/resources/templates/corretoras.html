@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Corretoras · Carteira</title><link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('corretoras')}"></div>
+<main class="app-main">
+    <header class="topbar"><div><p class="eyebrow">INSTITUIÇÕES</p><h1>Corretoras</h1><p class="muted">Dados empresariais, endereço e autorização verificados em fontes públicas.</p></div><a class="button secondary" th:href="@{/dashboard}">← Dashboard</a></header>
+    <div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
+    <section class="management-grid">
+        <article class="panel form-panel">
+            <div class="panel-heading"><div><p class="eyebrow">NOVA CORRETORA</p><h2>Validar instituição</h2></div></div>
+            <p class="panel-description">Razão social, situação cadastral e registro na CVM são preenchidos automaticamente.</p>
+            <form class="stack-form" th:action="@{/gestao/corretoras}" th:object="${corretoraForm}" method="post">
+                <div class="alert error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+                <label for="cnpj">CNPJ</label><input id="cnpj" th:field="*{cnpj}" type="text" placeholder="00.000.000/0000-00" required data-mask="cnpj"><small class="field-error" th:errors="*{cnpj}"></small>
+                <label for="cep">CEP</label><input id="cep" th:field="*{cep}" type="text" placeholder="00000-000" required data-mask="cep"><small class="field-error" th:errors="*{cep}"></small>
+                <div class="field-row"><div><label for="numero">Número</label><input id="numero" th:field="*{numero}" type="text" inputmode="numeric" required maxlength="20" data-numeric="integer"><small class="field-error" th:errors="*{numero}"></small></div><div><label for="complemento">Complemento</label><input id="complemento" th:field="*{complemento}" type="text" maxlength="120"></div></div>
+                <div class="validation-steps"><span><b>1</b> Receita Federal</span><span><b>2</b> CVM</span><span><b>3</b> ViaCEP</span></div>
+                <button class="button primary wide" type="submit">Consultar e cadastrar <span>→</span></button>
+            </form>
+        </article>
+        <article class="panel table-panel management-table">
+            <div class="panel-heading"><div><p class="eyebrow">TABELA</p><h2>Instituições validadas</h2></div><span class="count-badge" th:text="${#lists.size(corretoras) + ' corretoras'}">0</span></div>
+            <div class="table-scroll"><table><thead><tr><th>Instituição</th><th>CNPJ</th><th>Localização</th><th>Situação</th><th>CVM</th></tr></thead><tbody>
+                <tr th:if="${#lists.isEmpty(corretoras)}"><td colspan="5" class="table-empty">Nenhuma corretora cadastrada.</td></tr>
+                <tr th:each="c : ${corretoras}">
+                    <td><div class="asset-cell"><span class="ticker-mark broker">▦</span><span><strong th:text="${#strings.isEmpty(c.nomeFantasia) ? c.razaoSocial : c.nomeFantasia}">Corretora</strong><small th:text="${c.razaoSocial}">Razão social</small></span></div></td>
+                    <td><code th:text="${c.cnpj}">CNPJ</code></td><td><span th:text="${c.cidade + ' / ' + c.uf}">Cidade</span><small class="table-sub" th:text="${c.logradouro + ', ' + c.numero}">Endereço</small></td>
+                    <td><span class="market-tag" th:text="${c.situacaoCadastral}">ATIVA</span></td><td><span class="validated">✓ Validada</span><small class="table-sub" th:text="${c.statusCvm}">Normal</small></td>
+                </tr></tbody></table></div>
+        </article>
+    </section>
+</main>
+<script th:src="@{/js/forms.js}"></script>
+</body></html>

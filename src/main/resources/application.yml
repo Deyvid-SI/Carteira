@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: carteira-acao
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/carteira;DB_CLOSE_ON_EXIT=FALSE}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: America/Sao_Paulo
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: /h2-console
+  thymeleaf:
+    cache: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+integracoes:
+  brapi:
+    token: ${BRAPI_TOKEN:}
+  alpha-vantage:
+    api-key: ${ALPHA_VANTAGE_API_KEY:demo}
+
+app:
+  demo-user:
+    enabled: ${DEMO_USER_ENABLED:false}
+    email: ${DEMO_USER_EMAIL:admin@carteira.com}
+    password: ${DEMO_USER_PASSWORD:}

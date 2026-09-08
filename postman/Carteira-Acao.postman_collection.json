@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Carteira de Ações",
+    "description": "Endpoints do trabalho acadêmico. Use HTTP Basic com o usuário de demonstração ou altere as variáveis.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{email}}", "type": "string" },
+      { "key": "password", "value": "{{senha}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "email", "value": "admin@carteira.com" },
+    { "key": "senha", "value": "troque-esta-senha" },
+    { "key": "acaoId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Ações",
+      "item": [
+        {
+          "name": "Cadastrar ação brasileira",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}" },
+            "url": "{{baseUrl}}/acoes"
+          }
+        },
+        {
+          "name": "Cadastrar ação americana",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"IBM\",\n  \"mercado\": \"ESTADOS_UNIDOS\"\n}" },
+            "url": "{{baseUrl}}/acoes"
+          }
+        },
+        { "name": "Listar ações", "request": { "method": "GET", "url": "{{baseUrl}}/acoes?page=0&size=20" } },
+        { "name": "Buscar por ticker", "request": { "method": "GET", "url": "{{baseUrl}}/acoes/ticker/PETR4" } },
+        { "name": "Atualizar cotação", "request": { "method": "PUT", "url": "{{baseUrl}}/acoes/{{acaoId}}/atualizar-cotacao" } },
+        { "name": "Atualizar posição", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}" }, "url": "{{baseUrl}}/acoes/{{acaoId}}/posicao" } }
+      ]
+    },
+    {
+      "name": "Negociações",
+      "item": [
+        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
+        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
+        { "name": "Listar negociações", "request": { "method": "GET", "url": "{{baseUrl}}/negociacoes?page=0&size=20" } }
+      ]
+    },
+    {
+      "name": "Corretoras",
+      "item": [
+        {
+          "name": "Cadastrar corretora",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cnpj\": \"02.332.886/0001-04\",\n  \"cep\": \"22440-032\",\n  \"numero\": \"153\",\n  \"complemento\": \"Sala 201\"\n}" },
+            "url": "{{baseUrl}}/corretoras"
+          }
+        },
+        { "name": "Listar corretoras", "request": { "method": "GET", "url": "{{baseUrl}}/corretoras?page=0&size=20" } },
+        { "name": "Buscar por CNPJ", "request": { "method": "GET", "url": "{{baseUrl}}/corretoras/cnpj/02332886000104" } }
+      ]
+    },
+    { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/dados" } },
+    { "name": "OpenAPI JSON (somente ADMIN)", "request": { "method": "GET", "url": "{{baseUrl}}/v3/api-docs" } }
+  ]
+}

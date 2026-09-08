@@ -1,0 +1,46 @@
+name: carteira-acao
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-carteira_acao}
+      POSTGRES_USER: ${POSTGRES_USER:-carteira}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carteira} -d ${POSTGRES_DB:-carteira_acao}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  aplicacao:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carteira-acao:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-carteira_acao}
+      DB_USERNAME: ${POSTGRES_USER:-carteira}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DEMO_USER_ENABLED: ${DEMO_USER_ENABLED:-false}
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-admin@carteira.com}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      BRAPI_TOKEN: ${BRAPI_TOKEN:-}
+      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-demo}
+      H2_CONSOLE_ENABLED: "false"
+    ports:
+      - "${APP_PORT:-18080}:8080"
+
+volumes:
+  postgres_data:

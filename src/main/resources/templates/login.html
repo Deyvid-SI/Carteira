@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar · Carteira</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-body">
+<main class="auth-shell">
+    <section class="auth-visual">
+        <div class="auth-brand"><span class="brand-mark">C</span><strong>Carteira</strong></div>
+        <div class="market-visual" aria-hidden="true">
+            <span class="market-pill">IBOV <b>+0,84%</b></span>
+            <svg viewBox="0 0 640 260" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#3ee5a4" stop-opacity=".38"/>
+                        <stop offset="1" stop-color="#3ee5a4" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <path class="grid-line" d="M0 35H640M0 100H640M0 165H640M0 230H640"/>
+                <path class="area-line" d="M0 214 C55 205 66 164 116 178 S190 206 234 148 S296 110 337 130 S400 158 438 86 S510 102 548 56 S605 44 640 18 L640 260 L0 260Z"/>
+                <path class="price-line" d="M0 214 C55 205 66 164 116 178 S190 206 234 148 S296 110 337 130 S400 158 438 86 S510 102 548 56 S605 44 640 18"/>
+            </svg>
+        </div>
+        <div class="auth-copy">
+            <p class="eyebrow">GESTÃO INTELIGENTE</p>
+            <h1>Seus investimentos.<br><em>Uma visão completa.</em></h1>
+            <p>Acompanhe ativos brasileiros e americanos, valide corretoras e transforme dados de mercado em decisões claras.</p>
+        </div>
+        <div class="trust-row">
+            <span>● Dados reais</span><span>✓ Acesso protegido</span><span>↻ Cotações atualizadas</span>
+        </div>
+    </section>
+
+    <section class="auth-form-panel">
+        <form class="auth-form" th:action="@{/login}" method="post">
+            <p class="eyebrow">BEM-VINDO DE VOLTA</p>
+            <h2>Acesse sua carteira</h2>
+            <p class="muted">Entre com seus dados para continuar.</p>
+
+            <div class="alert error" th:if="${param.erro}">E-mail ou senha inválidos.</div>
+            <div class="alert success" th:if="${param.sair}">Sua sessão foi encerrada com segurança.</div>
+            <div class="alert success" th:if="${param.cadastrado}">Conta criada. Você já pode entrar.</div>
+
+            <label for="email">E-mail</label>
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required autofocus>
+
+            <label for="senha">Senha</label>
+            <div class="password-field">
+                <input id="senha" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+                <button class="password-toggle" type="button" data-password-toggle="senha" aria-label="Mostrar senha">◉</button>
+            </div>
+
+            <button class="button primary wide" type="submit">Entrar na carteira <span>→</span></button>
+            <p class="auth-switch">Ainda não tem conta? <a th:href="@{/cadastro}">Criar conta</a></p>
+        </form>
+    </section>
+</main>
+<script th:src="@{/js/auth.js}"></script>
+</body>
+</html>

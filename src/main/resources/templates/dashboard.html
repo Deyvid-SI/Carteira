@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard · Carteira</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
+<main class="app-main dashboard-main">
+    <header class="topbar">
+        <div><p class="eyebrow">PAINEL DE INVESTIMENTOS</p><h1>Visão completa da carteira</h1><p class="muted">Posições, patrimônio, resultados, rentabilidade e mercado em um só lugar.</p></div>
+        <a class="button primary" th:href="@{/gestao/negociacoes}">⇄ Comprar ou vender</a>
+    </header>
+
+    <section class="financial-grid" aria-label="Resumo financeiro">
+        <article class="financial-card invested"><div class="financial-title"><span>◫</span><small>Valor investido</small></div><div class="currency-values"><p><b>R$</b><strong id="investidoBRL">0,00</strong></p><p><b>US$</b><strong id="investidoUSD">0,00</strong></p></div><em>quantidade × preço médio</em></article>
+        <article class="financial-card current"><div class="financial-title"><span>◆</span><small>Patrimônio atual</small></div><div class="currency-values"><p><b>R$</b><strong id="atualBRL">0,00</strong></p><p><b>US$</b><strong id="atualUSD">0,00</strong></p></div><em>quantidade × cotação atual</em></article>
+        <article class="financial-card result"><div class="financial-title"><span>↗</span><small>Resultado acumulado</small></div><div class="currency-results"><p><span>BRL</span><strong id="resultadoBRL">R$ 0,00</strong><i id="rentabilidadeBRL">0,00%</i></p><p><span>USD</span><strong id="resultadoUSD">US$ 0,00</strong><i id="rentabilidadeUSD">0,00%</i></p></div><em>valor atual − valor investido</em></article>
+        <article class="financial-card daily"><div class="financial-title"><span>≈</span><small>Resultado do dia</small></div><div class="currency-results"><p><span>BRL</span><strong id="diaBRL">R$ 0,00</strong></p><p><span>USD</span><strong id="diaUSD">US$ 0,00</strong></p></div><em>estimado pela variação diária</em></article>
+    </section>
+
+    <section class="metric-grid" aria-label="Indicadores cadastrais">
+        <article class="metric-card"><span class="metric-icon green">↗</span><div><small>Ativos na carteira</small><strong id="totalAtivos">—</strong><em>posições acompanhadas</em></div></article>
+        <article class="metric-card"><span class="metric-icon blue">▦</span><div><small>Corretoras</small><strong id="totalCorretoras">—</strong><em>validadas na CVM</em></div></article>
+        <article class="metric-card"><span class="metric-icon violet">BR</span><div><small>Mercado brasileiro</small><strong id="ativosBrasil">—</strong><em>ativos na B3</em></div></article>
+        <article class="metric-card"><span class="metric-icon amber">US</span><div><small>Mercado americano</small><strong id="ativosUsa">—</strong><em>NYSE / Nasdaq</em></div></article>
+    </section>
+
+    <section class="chart-grid">
+        <article class="panel chart-panel wide-panel">
+            <div class="panel-heading"><div><p class="eyebrow">PREÇOS</p><h2>Evolução das cotações</h2><small class="heading-help">Últimos 30 registros de até 8 ativos</small></div><span class="live-dot">● dados persistidos</span></div>
+            <div class="canvas-wrap"><canvas id="lineChart" aria-label="Evolução das cotações"></canvas><p class="empty-chart" id="lineEmpty">Cadastre um ativo para visualizar sua evolução.</p></div>
+            <div class="chart-legend" id="lineLegend"></div>
+        </article>
+        <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">MERCADOS</p><h2>Quantidade por mercado</h2></div></div>
+            <div class="donut-layout"><div class="donut-wrap"><canvas id="marketChart" aria-label="Distribuição por mercado"></canvas><span class="donut-center"><b id="marketTotal">0</b><small>ativos</small></span></div><div id="marketLegend" class="donut-legend"></div></div>
+        </article>
+    </section>
+
+    <section class="chart-grid">
+        <article class="panel chart-panel wide-panel">
+            <div class="panel-heading"><div><p class="eyebrow">DESEMPENHO</p><h2>Rentabilidade histórica normalizada</h2><small class="heading-help">Compara ativos diferentes a partir de 0%</small></div></div>
+            <div class="canvas-wrap"><canvas id="performanceChart" aria-label="Rentabilidade histórica"></canvas><p class="empty-chart" id="performanceEmpty">O histórico aparecerá após o cadastro.</p></div>
+            <div class="chart-legend" id="performanceLegend"></div>
+        </article>
+        <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">RESULTADO</p><h2>Rentabilidade por ativo</h2><small class="heading-help">Lucro ou prejuízo acumulado em %</small></div></div>
+            <div class="canvas-wrap compact-canvas"><canvas id="resultChart" aria-label="Resultado por ativo"></canvas><p class="empty-chart" id="resultEmpty">Sem posições.</p></div>
+        </article>
+    </section>
+
+    <section class="panel chart-panel comparison-panel">
+        <div class="panel-heading">
+            <div><p class="eyebrow">CUSTO DE AQUISIÇÃO</p><h2>Preço médio acumulado por ação</h2><small class="heading-help">Preço médio atual de cada ação apresentado em colunas</small></div>
+            <select id="averagePriceCurrency" class="chart-select" aria-label="Moeda do gráfico de preço médio"><option value="BRL">BRL · Reais</option><option value="USD">USD · Dólares</option></select>
+        </div>
+        <div class="canvas-wrap comparison-canvas"><canvas id="averagePriceChart" aria-label="Preço médio acumulado por ação em colunas"></canvas><p class="empty-chart" id="averagePriceEmpty">Registre uma posição para acompanhar o preço médio.</p></div>
+        <div class="chart-legend" id="averagePriceLegend"></div>
+    </section>
+
+    <section class="allocation-grid">
+        <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">ALOCAÇÃO BRL</p><h2>Patrimônio por ativo</h2></div></div>
+            <div class="donut-layout"><div class="donut-wrap"><canvas id="allocationBrlChart"></canvas><span class="donut-center"><b id="allocationBrlTotal">0</b><small>BRL</small></span></div><div id="allocationBrlLegend" class="donut-legend"></div></div>
+        </article>
+        <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">ALOCAÇÃO USD</p><h2>Patrimônio por ativo</h2></div></div>
+            <div class="donut-layout"><div class="donut-wrap"><canvas id="allocationUsdChart"></canvas><span class="donut-center"><b id="allocationUsdTotal">0</b><small>USD</small></span></div><div id="allocationUsdLegend" class="donut-legend"></div></div>
+        </article>
+        <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">MOVIMENTO DO DIA</p><h2>Variação diária</h2><small class="heading-help">Percentual informado pelo mercado</small></div></div>
+            <div class="canvas-wrap compact-canvas"><canvas id="dailyChart"></canvas><p class="empty-chart" id="dailyEmpty">Sem posições.</p></div>
+        </article>
+    </section>
+
+    <section class="panel chart-panel comparison-panel">
+        <div class="panel-heading"><div><p class="eyebrow">CAPITAL</p><h2>Valor investido × valor atual</h2><small class="heading-help">Comparação por ativo na moeda original</small></div><select id="positionCurrency" class="chart-select"><option value="BRL">BRL · Reais</option><option value="USD">USD · Dólares</option></select></div>
+        <div class="canvas-wrap comparison-canvas"><canvas id="positionChart"></canvas><p class="empty-chart" id="positionEmpty">Não há posições nesta moeda.</p></div>
+        <div class="chart-legend static-legend"><span><i style="background:#65737d"></i>Investido</span><span><i style="background:#55d6a4"></i>Atual</span></div>
+    </section>
+
+    <section class="panel table-panel portfolio-table">
+        <div class="panel-heading"><div><p class="eyebrow">POSIÇÕES</p><h2>Posições e preço médio</h2><small class="heading-help">Preço médio e demais valores separados entre BRL e USD</small></div><a th:href="@{/gestao/acoes}">Editar posições →</a></div>
+        <div class="table-scroll">
+            <table><thead><tr><th>Ativo</th><th>Mercado</th><th>Qtd.</th><th>Preço médio</th><th>Cotação</th><th>Investido</th><th>Atual</th><th>Resultado</th><th>Dia</th><th>Atualizado</th></tr></thead><tbody id="ativosBody"><tr><td colspan="10" class="table-empty">Carregando dados…</td></tr></tbody></table>
+        </div>
+    </section>
+</main>
+<script th:src="@{/js/dashboard.js}"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Criar conta · Carteira</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-body">
+<main class="auth-shell compact-auth">
+    <section class="auth-visual">
+        <div class="auth-brand"><span class="brand-mark">C</span><strong>Carteira</strong></div>
+        <div class="auth-copy">
+            <p class="eyebrow">COMECE AGORA</p>
+            <h1>Dados de mercado.<br><em>Controle nas suas mãos.</em></h1>
+            <p>Crie sua conta para acessar o dashboard, as tabelas e todas as integrações da plataforma.</p>
+        </div>
+        <ul class="feature-list"><li>Login validado com Spring Security</li><li>Senha protegida por BCrypt</li><li>Sessão autenticada</li></ul>
+    </section>
+    <section class="auth-form-panel">
+        <form class="auth-form" th:action="@{/cadastro}" th:object="${usuario}" method="post">
+            <p class="eyebrow">NOVA CONTA</p>
+            <h2>Crie seu acesso</h2>
+            <div class="alert error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+
+            <label for="nome">Nome completo</label>
+            <input id="nome" th:field="*{nome}" type="text" autocomplete="name" required minlength="3">
+            <small class="field-error" th:errors="*{nome}"></small>
+
+            <label for="email">E-mail</label>
+            <input id="email" th:field="*{email}" type="email" autocomplete="email" required>
+            <small class="field-error" th:errors="*{email}"></small>
+
+            <label for="senha">Senha</label>
+            <div class="password-field">
+                <input id="senha" th:field="*{senha}" type="password" autocomplete="new-password" required minlength="8">
+                <button class="password-toggle" type="button" data-password-toggle="senha">◉</button>
+            </div>
+            <small class="field-error" th:errors="*{senha}"></small>
+
+            <label for="confirmarSenha">Confirmar senha</label>
+            <input id="confirmarSenha" th:field="*{confirmarSenha}" type="password" autocomplete="new-password" required>
+            <small class="field-error" th:errors="*{confirmarSenha}"></small>
+
+            <button class="button primary wide" type="submit">Criar conta <span>→</span></button>
+            <p class="auth-switch">Já tem uma conta? <a th:href="@{/login}">Entrar</a></p>
+        </form>
+    </section>
+</main>
+<script th:src="@{/js/auth.js}"></script>
+</body>
+</html>

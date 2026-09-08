@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.31.xsd">
+
+    <changeSet id="005-criar-tabela-negociacoes" author="carteira-acao">
+        <createTable tableName="negociacoes">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_negociacoes" nullable="false"/>
+            </column>
+            <column name="acao_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="tipo" type="VARCHAR(10)"><constraints nullable="false"/></column>
+            <column name="quantidade" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="preco_unitario" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="taxas" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="valor_bruto" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="valor_liquido" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="resultado_realizado" type="DECIMAL(19,4)"><constraints nullable="false"/></column>
+            <column name="data_negociacao" type="TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="data_cadastro" type="TIMESTAMP"><constraints nullable="false"/></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="negociacoes" baseColumnNames="acao_id"
+                                 referencedTableName="acoes" referencedColumnNames="id"
+                                 constraintName="fk_negociacao_acao"/>
+        <createIndex tableName="negociacoes" indexName="idx_negociacao_acao_data">
+            <column name="acao_id"/><column name="data_negociacao"/>
+        </createIndex>
+        <createIndex tableName="negociacoes" indexName="idx_negociacao_tipo">
+            <column name="tipo"/>
+        </createIndex>
+        <rollback><dropTable tableName="negociacoes"/></rollback>
+    </changeSet>
+
+</databaseChangeLog>
