@@ -1,38 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<aside class="sidebar" th:fragment="sidebar(active)">
-    <a class="brand" th:href="@{/dashboard}" aria-label="Página inicial">
-        <span class="brand-mark">C</span>
-        <span><strong>Carteira</strong><small>ações & mercados</small></span>
-    </a>
+<header class="app-nav" th:fragment="sidebar(active)">
+    <div class="nav-shell">
+        <a class="brand" th:href="@{/dashboard}" aria-label="Página inicial">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 40 40" role="img">
+                    <path class="brand-gem" d="M20 4.5 33 12v16L20 35.5 7 28V12z"/>
+                    <path class="brand-chart" d="m11.5 25 6.1-6.2 4.5 4.1 7-8"/>
+                    <path class="brand-arrow" d="M24.6 14.9h4.5v4.5"/>
+                </svg>
+            </span>
+            <span><strong>Carteira</strong><small>private wealth</small></span>
+        </a>
 
-    <nav class="side-nav" aria-label="Menu principal">
-        <span class="nav-label">VISÃO GERAL</span>
-        <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? ' active' : ''">
-            <span class="nav-icon">⌁</span> Dashboard
-        </a>
-        <span class="nav-label">GESTÃO</span>
-        <a th:href="@{/gestao/acoes}" th:classappend="${active == 'acoes'} ? ' active' : ''">
-            <span class="nav-icon">↗</span> Ativos
-        </a>
-        <a th:href="@{/gestao/negociacoes}" th:classappend="${active == 'negociacoes'} ? ' active' : ''">
-            <span class="nav-icon">⇄</span> Compras e vendas
-        </a>
-        <a th:href="@{/gestao/corretoras}" th:classappend="${active == 'corretoras'} ? ' active' : ''">
-            <span class="nav-icon">▦</span> Corretoras
-        </a>
-    </nav>
+        <nav class="top-tabs" aria-label="Menu principal">
+            <a th:href="@{/dashboard#visao-geral}" data-section-link="visao-geral"
+               th:classappend="${active == 'dashboard'} ? ' active' : ''"><span class="nav-icon">◈</span>Resumo</a>
+            <a th:href="@{/dashboard#preco-medio}" data-section-link="preco-medio"><span class="nav-icon">▥</span>Preço médio</a>
+            <a th:href="@{/dashboard#resultados}" data-section-link="resultados"><span class="nav-icon">↗</span>Resultados</a>
+            <a th:href="@{/dashboard#posicoes}" data-section-link="posicoes"><span class="nav-icon">▦</span>Posições</a>
+            <a th:href="@{/gestao/acoes}" th:classappend="${active == 'acoes'} ? ' active' : ''"><span class="nav-icon">◇</span>Ativos</a>
+            <a th:href="@{/gestao/negociacoes}" th:classappend="${active == 'negociacoes'} ? ' active' : ''"><span class="nav-icon">⇄</span>Negociar</a>
+            <a th:href="@{/historico}" th:classappend="${active == 'historico'} ? ' active' : ''"><span class="nav-icon">◴</span>Histórico</a>
+            <a th:href="@{/gestao/corretoras}" th:classappend="${active == 'corretoras'} ? ' active' : ''"><span class="nav-icon">▣</span>Corretoras</a>
+            <a th:href="@{/imposto-renda}" th:classappend="${active == 'imposto-renda'} ? ' active' : ''"><span class="nav-icon nav-icon-text">IR</span>Imposto de Renda</a>
+            <a th:href="@{/configuracoes}" th:classappend="${active == 'configuracoes'} ? ' active' : ''"><span class="nav-icon">⚙</span>Configurações</a>
+        </nav>
 
-    <div class="sidebar-footer">
-        <div class="user-chip">
-            <span class="avatar">U</span>
-            <span><strong sec:authentication="name">usuário</strong><small>Sessão protegida</small></span>
+        <div class="nav-actions">
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Alternar tema" aria-pressed="false">
+                <span class="theme-icon" data-theme-icon>☀</span><span data-theme-label>Modo claro</span>
+            </button>
+            <div class="user-chip">
+                <span class="avatar">U</span>
+                <span><strong sec:authentication="name">usuário</strong><small>Sessão protegida</small></span>
+            </div>
+            <form class="logout-form" th:action="@{/logout}" method="post">
+                <button class="logout-button" type="submit" title="Sair" aria-label="Sair">↪</button>
+            </form>
         </div>
-        <form th:action="@{/logout}" method="post">
-            <button class="logout-button" type="submit" title="Sair">↪</button>
-        </form>
     </div>
-</aside>
+</header>
 </body>
 </html>

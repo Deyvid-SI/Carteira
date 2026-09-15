@@ -11,6 +11,8 @@ import br.com.carteira.model.HistoricoCotacao;
 import br.com.carteira.repository.AcaoRepository;
 import br.com.carteira.repository.HistoricoCotacaoRepository;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.data.domain.Page;
@@ -23,25 +25,31 @@ public class AcaoService {
     private final AcaoRepository repository;
     private final HistoricoCotacaoRepository historicoRepository;
     private final CotacaoGatewaySelector selector;
+    private final UsuarioAtualService usuarioAtual;
 
     public AcaoService(AcaoRepository repository, HistoricoCotacaoRepository historicoRepository,
-                       CotacaoGatewaySelector selector) {
+                       CotacaoGatewaySelector selector, UsuarioAtualService usuarioAtual) {
         this.repository = repository;
         this.historicoRepository = historicoRepository;
         this.selector = selector;
+        this.usuarioAtual = usuarioAtual;
     }
 
     @Transactional
     public Acao cadastrar(CadastrarAcaoRequest request) {
+        var usuario = usuarioAtual.obter();
         String ticker = normalize(request.getTicker());
-        if (repository.existsByTickerIgnoreCase(ticker)) throw new RegraNegocioException("Este ticker já está cadastrado.");
+        if (repository.existsByTickerIgnoreCaseAndUsuarioId(ticker, usuario.getId())) {
+            throw new RegraNegocioException("Este ticker já está cadastrado na sua carteira.");
+        }
         CotacaoDados quote = selector.para(request.getMercado()).buscar(ticker);
         Acao acao = new Acao();
+        acao.setUsuario(usuario);
         acao.setTicker(quote.ticker().toUpperCase(Locale.ROOT));
         acao.setNomeEmpresa(quote.nomeEmpresa());
         acao.setMercado(request.getMercado());
         applyQuote(acao, quote);
-        var quantidadeInicial = request.getQuantidade() == null ? java.math.BigDecimal.ZERO : request.getQuantidade();
+        var quantidadeInicial = unidades(request.getQuantidade() == null ? BigDecimal.ZERO : request.getQuantidade(), true);
         acao.setQuantidade(quantidadeInicial);
         acao.setPrecoMedio(request.getPrecoMedio() != null ? request.getPrecoMedio()
                 : quantidadeInicial.signum() > 0 ? quote.preco() : java.math.BigDecimal.ZERO);
@@ -63,7 +71,7 @@ public class AcaoService {
     @Transactional
     public Acao atualizarPosicao(Long id, AtualizarPosicaoRequest request) {
         Acao acao = buscar(id);
-        acao.setQuantidade(request.getQuantidade());
+        acao.setQuantidade(unidades(request.getQuantidade(), false));
         acao.setPrecoMedio(request.getPrecoMedio());
         return repository.save(acao);
     }
@@ -85,20 +93,34 @@ public class AcaoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Acao> listar(Pageable pageable) { return repository.findAll(pageable); }
+    public Page<Acao> listar(Pageable pageable) {
+        return repository.findAllByUsuarioId(usuarioAtual.id(), pageable);
+    }
 
     @Transactional(readOnly = true)
-    public List<Acao> listarTodos() { return repository.findAll(); }
+    public List<Acao> listarTodos() {
+        return repository.findAllByUsuarioIdOrderByTickerAsc(usuarioAtual.id());
+    }
 
     @Transactional(readOnly = true)
     public Acao buscar(Long id) {
-        return repository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada."));
+        return repository.findByIdAndUsuarioId(id, usuarioAtual.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada na sua carteira."));
     }
 
     @Transactional(readOnly = true)
     public Acao buscarPorTicker(String ticker) {
-        return repository.findByTickerIgnoreCase(normalize(ticker))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada."));
+        return repository.findByTickerIgnoreCaseAndUsuarioId(normalize(ticker), usuarioAtual.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada na sua carteira."));
+    }
+
+    private BigDecimal unidades(BigDecimal quantidade, boolean permiteZero) {
+        if (quantidade == null || (!permiteZero && quantidade.signum() <= 0) || quantidade.signum() < 0
+                || quantidade.stripTrailingZeros().scale() > 0) {
+            throw new RegraNegocioException("A quantidade deve ser um número inteiro"
+                    + (permiteZero ? " não negativo." : " maior que zero."));
+        }
+        return quantidade.setScale(0, RoundingMode.UNNECESSARY);
     }
 
     private static String normalize(String ticker) { return ticker.trim().toUpperCase(Locale.ROOT); }

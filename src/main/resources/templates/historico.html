@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Histórico · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('historico')}"></div>
+<main class="app-main portal-main">
+    <header class="topbar portal-topbar">
+        <div><p class="eyebrow">LINHA DO TEMPO</p><h1>Histórico da carteira</h1><p class="muted">Todas as compras e vendas registradas, sem o limite da tela de negociação.</p></div>
+        <a class="button primary" th:href="@{/gestao/negociacoes}">＋ Nova operação</a>
+    </header>
+
+    <section class="portal-summary-grid" aria-label="Resumo do histórico">
+        <article class="summary-card"><span class="summary-icon">⇄</span><small>Operações</small><strong th:text="${resumoHistorico.totalOperacoes}">0</strong><em th:text="${resumoHistorico.compras + ' compras · ' + resumoHistorico.vendas + ' vendas'}">0 compras · 0 vendas</em></article>
+        <article class="summary-card"><span class="summary-icon">◇</span><small>Ativos movimentados</small><strong th:text="${resumoHistorico.ativosMovimentados}">0</strong><em>tickers diferentes</em></article>
+        <article class="summary-card money-summary"><span class="summary-icon">Σ</span><small>Volume movimentado</small><strong th:text="${'R$ ' + #numbers.formatDecimal(resumoHistorico.volumeBrl, 1, 2, 'COMMA')}">R$ 0,00</strong><em th:text="${'US$ ' + #numbers.formatDecimal(resumoHistorico.volumeUsd, 1, 2, 'COMMA')}">US$ 0,00</em></article>
+        <article class="summary-card money-summary"><span class="summary-icon">↗</span><small>Resultado realizado</small><strong th:classappend="${resumoHistorico.resultadoRealizadoBrl.signum() < 0} ? ' negative' : ' positive'" th:text="${'R$ ' + #numbers.formatDecimal(resumoHistorico.resultadoRealizadoBrl, 1, 2, 'COMMA')}">R$ 0,00</strong><em th:classappend="${resumoHistorico.resultadoRealizadoUsd.signum() < 0} ? ' negative' : ' positive'" th:text="${'US$ ' + #numbers.formatDecimal(resumoHistorico.resultadoRealizadoUsd, 1, 2, 'COMMA')}">US$ 0,00</em></article>
+    </section>
+
+    <section class="panel table-panel portal-table-panel">
+        <div class="panel-heading history-heading">
+            <div><p class="eyebrow">REGISTROS</p><h2>Movimentações completas</h2><small class="heading-help" th:if="${resumoHistorico.primeiraOperacao != null}" th:text="${'Período de ' + #temporals.format(resumoHistorico.primeiraOperacao, 'dd/MM/yyyy') + ' a ' + #temporals.format(resumoHistorico.ultimaOperacao, 'dd/MM/yyyy')}">Período</small></div>
+            <span class="count-badge"><b data-history-count th:text="${#lists.size(negociacoes)}">0</b>&nbsp;exibidas</span>
+        </div>
+        <div class="history-toolbar">
+            <label class="search-field"><span>⌕</span><input type="search" placeholder="Buscar ticker ou empresa" data-history-search aria-label="Buscar no histórico"></label>
+            <label><span>Operação</span><select data-history-type><option value="">Todas</option><option value="COMPRA">Compras</option><option value="VENDA">Vendas</option></select></label>
+            <label><span>Mercado</span><select data-history-market><option value="">Todos</option><option value="BRASIL">Brasil</option><option value="ESTADOS_UNIDOS">Estados Unidos</option></select></label>
+        </div>
+        <div class="table-scroll">
+            <table class="history-table"><thead><tr><th>Data</th><th>Ativo</th><th>Operação</th><th>Quantidade</th><th>Preço unitário</th><th>Valor bruto</th><th>Resultado realizado</th></tr></thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(negociacoes)}"><td colspan="7" class="table-empty">Nenhuma operação registrada. Suas compras e vendas aparecerão aqui.</td></tr>
+                <tr th:each="n : ${negociacoes}" data-history-row th:data-search="${#strings.toLowerCase(n.acao.ticker + ' ' + n.acao.nomeEmpresa)}" th:data-type="${n.tipo}" th:data-market="${n.acao.mercado}">
+                    <td><strong th:text="${#temporals.format(n.dataNegociacao, 'dd/MM/yyyy')}">01/01/2026</strong><small class="table-sub" th:text="${#temporals.format(n.dataNegociacao, 'HH:mm')}">10:00</small></td>
+                    <td><div class="asset-cell"><span class="ticker-mark logo-mark"><img th:src="${n.acao.logoUrl}" th:alt="${'Logo da ' + n.acao.nomeEmpresa}" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><b class="logo-fallback" hidden th:text="${#strings.substring(n.acao.ticker, 0, 1)}">P</b></span><span><strong th:text="${n.acao.ticker}">PETR4</strong><small th:text="${n.acao.nomeEmpresa}">Empresa</small></span></div></td>
+                    <td><span th:class="${n.tipo.name() == 'COMPRA'} ? 'operation-badge buy' : 'operation-badge sell'" th:text="${n.tipo.descricao}">Compra</span></td>
+                    <td><strong th:text="${#numbers.formatInteger(n.quantidade, 1)}">0</strong></td>
+                    <td><strong th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.precoUnitario, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
+                    <td><strong th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.valorBruto, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
+                    <td><span th:if="${n.tipo.name() == 'VENDA'}" th:class="${n.resultadoRealizado.signum() >= 0} ? 'variation positive' : 'variation negative'" th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.resultadoRealizado, 1, 2, 'COMMA')}">BRL 0,00</span><span th:unless="${n.tipo.name() == 'VENDA'}" class="muted">—</span></td>
+                </tr>
+                <tr data-history-empty hidden><td colspan="7" class="table-empty">Nenhuma movimentação corresponde aos filtros selecionados.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script th:src="@{/js/portal.js}"></script>
+</body>
+</html>

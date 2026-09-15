@@ -21,20 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class NegociacaoService {
     private final NegociacaoRepository repository;
     private final AcaoRepository acaoRepository;
+    private final UsuarioAtualService usuarioAtual;
 
-    public NegociacaoService(NegociacaoRepository repository, AcaoRepository acaoRepository) {
+    public NegociacaoService(NegociacaoRepository repository, AcaoRepository acaoRepository,
+                             UsuarioAtualService usuarioAtual) {
         this.repository = repository;
         this.acaoRepository = acaoRepository;
+        this.usuarioAtual = usuarioAtual;
     }
 
     @Transactional
     public Negociacao registrar(RegistrarNegociacaoRequest request) {
         validarRequest(request);
-        Acao acao = acaoRepository.buscarParaNegociacao(request.getAcaoId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada."));
+        Acao acao = acaoRepository.buscarParaNegociacao(request.getAcaoId(), usuarioAtual.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ação não encontrada na sua carteira."));
 
-        BigDecimal quantidade = scale(request.getQuantidade());
-        BigDecimal preco = cotacaoAtual(acao);
+        BigDecimal quantidade = unidades(request.getQuantidade());
+        BigDecimal preco = scale(request.getPrecoUnitario());
         BigDecimal taxas = money(BigDecimal.ZERO);
         BigDecimal valorBruto = money(quantidade.multiply(preco));
         BigDecimal valorLiquido;
@@ -63,8 +66,8 @@ public class NegociacaoService {
     }
 
     private void aplicarCompra(Acao acao, BigDecimal quantidadeComprada, BigDecimal custoTotalCompra) {
-        BigDecimal quantidadeAtual = scale(acao.getQuantidade());
-        BigDecimal novaQuantidade = scale(quantidadeAtual.add(quantidadeComprada));
+        BigDecimal quantidadeAtual = unidadesNaoNegativas(acao.getQuantidade());
+        BigDecimal novaQuantidade = unidadesNaoNegativas(quantidadeAtual.add(quantidadeComprada));
         BigDecimal custoAtual = acao.getPrecoMedio().multiply(quantidadeAtual);
         BigDecimal novoPrecoMedio = custoAtual.add(custoTotalCompra)
                 .divide(novaQuantidade, 4, RoundingMode.HALF_UP);
@@ -73,23 +76,28 @@ public class NegociacaoService {
     }
 
     private BigDecimal aplicarVenda(Acao acao, BigDecimal quantidadeVendida, BigDecimal valorRecebido) {
-        BigDecimal quantidadeAtual = scale(acao.getQuantidade());
+        BigDecimal quantidadeAtual = unidadesNaoNegativas(acao.getQuantidade());
+        BigDecimal precoMedioAtual = scale(acao.getPrecoMedio());
         if (quantidadeVendida.compareTo(quantidadeAtual) > 0) {
             throw new RegraNegocioException("A quantidade vendida supera o saldo disponível de "
                     + quantidadeAtual.stripTrailingZeros().toPlainString() + " unidades.");
         }
-        BigDecimal custoDaVenda = acao.getPrecoMedio().multiply(quantidadeVendida);
+        BigDecimal custoDaVenda = precoMedioAtual.multiply(quantidadeVendida);
         BigDecimal resultado = money(valorRecebido.subtract(custoDaVenda));
-        BigDecimal saldo = scale(quantidadeAtual.subtract(quantidadeVendida));
+        BigDecimal saldo = unidadesNaoNegativas(quantidadeAtual.subtract(quantidadeVendida));
         acao.setQuantidade(saldo);
-        if (saldo.signum() == 0) acao.setPrecoMedio(money(BigDecimal.ZERO));
+        acao.setPrecoMedio(saldo.signum() == 0 ? money(BigDecimal.ZERO) : precoMedioAtual);
         return resultado;
     }
 
     private void validarRequest(RegistrarNegociacaoRequest request) {
         if (request.getTipo() == null || request.getAcaoId() == null
-                || request.getQuantidade() == null || request.getQuantidade().signum() <= 0) {
-            throw new RegraNegocioException("Preencha ativo, operação e quantidade corretamente.");
+                || request.getQuantidade() == null || request.getQuantidade().signum() <= 0
+                || request.getPrecoUnitario() == null || request.getPrecoUnitario().signum() <= 0) {
+            throw new RegraNegocioException("Preencha ativo, operação, quantidade e preço corretamente.");
+        }
+        if (request.getQuantidade().stripTrailingZeros().scale() > 0) {
+            throw new RegraNegocioException("A quantidade deve ser um número inteiro.");
         }
         if (request.getDataNegociacao() == null || request.getDataNegociacao().isAfter(LocalDateTime.now())) {
             throw new RegraNegocioException("A data da negociação não pode estar no futuro.");
@@ -98,20 +106,23 @@ public class NegociacaoService {
 
     @Transactional(readOnly = true)
     public Page<Negociacao> listar(Pageable pageable) {
-        return repository.findAllByOrderByDataNegociacaoDescIdDesc(pageable);
+        return repository.findAllByAcaoUsuarioIdOrderByDataNegociacaoDescIdDesc(usuarioAtual.id(), pageable);
     }
 
     @Transactional(readOnly = true)
     public List<Negociacao> listarRecentes() {
-        return repository.findTop200ByOrderByDataNegociacaoDescIdDesc();
+        return repository.findTop200ByAcaoUsuarioIdOrderByDataNegociacaoDescIdDesc(usuarioAtual.id());
     }
 
-    private BigDecimal cotacaoAtual(Acao acao) {
-        BigDecimal cotacao = acao.getCotacaoAtual();
-        if (cotacao == null || cotacao.signum() <= 0) {
-            throw new RegraNegocioException("O ativo não possui uma cotação válida. Atualize a cotação antes de negociar.");
+    private static BigDecimal unidades(BigDecimal value) {
+        return value.setScale(0, RoundingMode.UNNECESSARY);
+    }
+
+    private static BigDecimal unidadesNaoNegativas(BigDecimal value) {
+        if (value.signum() < 0 || value.stripTrailingZeros().scale() > 0) {
+            throw new RegraNegocioException("O saldo da ação deve ser um número inteiro não negativo.");
         }
-        return scale(cotacao);
+        return unidades(value);
     }
 
     private static BigDecimal scale(BigDecimal value) {

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configurações · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('configuracoes')}"></div>
+<main class="app-main portal-main">
+    <header class="topbar portal-topbar">
+        <div><p class="eyebrow">PREFERÊNCIAS</p><h1>Configurações da experiência</h1><p class="muted">Ajuste a aparência e a leitura da sua carteira neste navegador.</p></div>
+        <span class="status-pill"><i></i>Sessão protegida</span>
+    </header>
+
+    <section class="settings-layout">
+        <div class="settings-stack">
+            <article class="panel settings-panel">
+                <div class="panel-heading"><div><p class="eyebrow">APARÊNCIA</p><h2>Escolha o acabamento</h2><small class="heading-help">O tema muda imediatamente em todas as telas.</small></div></div>
+                <div class="preference-grid" aria-label="Tema da interface">
+                    <button class="preference-choice theme-choice-dark" type="button" data-theme-choice="dark" aria-pressed="false">
+                        <span class="preference-preview marble-preview"><i></i><i></i><i></i></span>
+                        <span><strong>Preto piano</strong><small>Mármore escuro com dourado</small></span><b>Selecionar</b>
+                    </button>
+                    <button class="preference-choice theme-choice-light" type="button" data-theme-choice="light" aria-pressed="false">
+                        <span class="preference-preview ivory-preview"><i></i><i></i><i></i></span>
+                        <span><strong>Branco executivo</strong><small>Marfim com detalhes dourados</small></span><b>Selecionar</b>
+                    </button>
+                </div>
+            </article>
+
+            <article class="panel settings-panel">
+                <div class="panel-heading"><div><p class="eyebrow">ACESSIBILIDADE</p><h2>Movimento e densidade</h2><small class="heading-help">Reduza animações ou compacte as tabelas conforme sua preferência.</small></div></div>
+                <div class="setting-row">
+                    <div><strong>Animações do fundo</strong><small>Controla o deslocamento suave do mármore, brilhos e cartões.</small></div>
+                    <div class="segmented-control" role="group" aria-label="Movimento da interface">
+                        <button type="button" data-motion-choice="full" aria-pressed="false">Suave</button>
+                        <button type="button" data-motion-choice="reduced" aria-pressed="false">Reduzido</button>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div><strong>Densidade das informações</strong><small>Ajusta os espaços das tabelas sem ocultar nenhum dado.</small></div>
+                    <div class="segmented-control" role="group" aria-label="Densidade da interface">
+                        <button type="button" data-density-choice="comfortable" aria-pressed="false">Confortável</button>
+                        <button type="button" data-density-choice="compact" aria-pressed="false">Compacta</button>
+                    </div>
+                </div>
+                <div class="preference-footer"><span data-preference-status aria-live="polite">Preferências salvas neste navegador.</span><button class="text-button" type="button" data-reset-preferences>Restaurar padrão</button></div>
+            </article>
+        </div>
+
+        <aside class="settings-stack">
+            <article class="panel profile-panel">
+                <span class="profile-emblem" aria-hidden="true">◆</span>
+                <p class="eyebrow">CONTA ATUAL</p>
+                <h2 th:text="${usuario != null ? usuario.nome : 'Investidor'}">Investidor</h2>
+                <p th:text="${emailSessao}">usuario@carteira.com</p>
+                <div class="profile-meta"><span><small>Perfil</small><strong th:text="${usuario != null ? usuario.papel : 'USER'}">USER</strong></span><span><small>Status</small><strong>Ativo</strong></span></div>
+            </article>
+            <article class="panel security-panel">
+                <div class="security-icon">◈</div>
+                <div><p class="eyebrow">SEGURANÇA</p><h2>Credenciais protegidas</h2><p>As chaves dos provedores financeiros permanecem no servidor e não aparecem nesta interface.</p></div>
+            </article>
+        </aside>
+    </section>
+</main>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ativos · Carteira</title><link rel="stylesheet" th:href="@{/css/app.css}">
+    <title>Ativos · Carteira</title><script th:src="@{/js/theme.js}"></script><link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-body">
 <div th:replace="~{fragments/sidebar :: sidebar('acoes')}"></div>
@@ -37,14 +37,14 @@
                     <tbody>
                     <tr th:if="${#lists.isEmpty(acoes)}"><td colspan="8" class="table-empty">Nenhum ativo cadastrado. Use o formulário ao lado.</td></tr>
                     <tr th:each="acao : ${acoes}">
-                        <td><div class="asset-cell"><span class="ticker-mark" th:text="${#strings.substring(acao.ticker, 0, 1)}">P</span><span><strong th:text="${acao.ticker}">PETR4</strong><small th:text="${acao.nomeEmpresa}">Empresa</small></span></div></td>
-                        <td><strong th:text="${#numbers.formatDecimal(acao.quantidade, 1, 4, 'COMMA') + ' un.'}">0 un.</strong><small class="table-sub" th:text="${'PM ' + acao.moeda + ' ' + #numbers.formatDecimal(acao.precoMedio, 1, 2, 'COMMA')}">PM 0</small></td>
+                        <td><div class="asset-cell"><span class="ticker-mark logo-mark"><img th:src="${acao.logoUrl}" th:alt="${'Logo da ' + acao.nomeEmpresa}" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><b class="logo-fallback" hidden th:text="${#strings.substring(acao.ticker, 0, 1)}">P</b></span><span><strong th:text="${acao.ticker}">PETR4</strong><small th:text="${acao.nomeEmpresa}">Empresa</small></span></div></td>
+                        <td><strong th:text="${#numbers.formatInteger(acao.quantidade, 1) + ' un.'}">0 un.</strong><small class="table-sub" th:text="${'PM ' + acao.moeda + ' ' + #numbers.formatDecimal(acao.precoMedio, 1, 2, 'COMMA')}">PM 0</small></td>
                         <td><strong th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.cotacaoAtual, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
                         <td><strong th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.valorInvestido, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
                         <td><strong th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.valorAtual, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
                         <td><span th:class="${acao.resultado.signum() >= 0} ? 'variation positive' : 'variation negative'" th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.resultado, 1, 2, 'COMMA')}">0</span><small class="table-sub" th:text="${#numbers.formatDecimal(acao.rentabilidade, 1, 2, 'COMMA') + '%'}">0%</small></td>
                         <td><span th:class="${acao.variacaoPercentual != null and acao.variacaoPercentual.signum() >= 0} ? 'variation positive' : 'variation negative'" th:text="${acao.variacaoPercentual == null ? '—' : #numbers.formatDecimal(acao.variacaoPercentual, 1, 2, 'COMMA') + '%'}">0%</span></td>
-                        <td><div class="row-actions"><a class="icon-button action-link" th:href="@{/gestao/negociacoes(acaoId=${acao.id})}" title="Comprar ou vender">⇄</a><form th:action="@{/gestao/acoes/{id}/atualizar(id=${acao.id})}" method="post"><button class="icon-button" type="submit" title="Atualizar cotação">↻</button></form></div></td>
+                        <td><div class="row-actions"><a class="icon-button action-link" th:href="@{/gestao/negociacoes(acaoId=${acao.id})}" title="Comprar ou vender">⇄</a><form th:action="@{/gestao/acoes/{id}/atualizar(id=${acao.id})}" method="post"><button class="icon-button" type="submit" title="Buscar cotação no provedor">↻</button></form></div></td>
                     </tr>
                     </tbody>
                 </table>

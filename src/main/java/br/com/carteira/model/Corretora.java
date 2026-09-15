@@ -4,11 +4,16 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "corretoras", uniqueConstraints = @UniqueConstraint(name = "uk_corretora_cnpj", columnNames = "cnpj"))
+@Table(name = "corretoras", uniqueConstraints = @UniqueConstraint(
+        name = "uk_corretora_usuario_cnpj", columnNames = {"usuario_id", "cnpj"}))
 public class Corretora {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
 
     @Column(nullable = false, length = 14)
     private String cnpj;
@@ -37,6 +42,8 @@ public class Corretora {
     void prePersist() { dataCadastro = LocalDateTime.now(); }
 
     public Long getId() { return id; }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
     public String getCnpj() { return cnpj; }
     public void setCnpj(String cnpj) { this.cnpj = cnpj; }
     public String getRazaoSocial() { return razaoSocial; }

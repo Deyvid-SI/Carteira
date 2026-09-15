@@ -26,4 +26,6 @@ Capacidades documentadas:
 - `corretoras`
 - `dashboard`
 - `infraestrutura`
+- `isolamento-usuario`
 - `negociacoes`
+- `portal`

@@ -7,8 +7,8 @@ import java.math.BigDecimal;
 
 public class AtualizarPosicaoRequest {
     @NotNull(message = "Informe a quantidade")
-    @DecimalMin(value = "0.0001", message = "A quantidade deve ser maior que zero")
-    @Digits(integer = 15, fraction = 4, message = "Quantidade inválida")
+    @DecimalMin(value = "1", message = "A quantidade deve ser maior que zero")
+    @Digits(integer = 15, fraction = 0, message = "A quantidade deve ser um número inteiro")
     private BigDecimal quantidade;
 
     @NotNull(message = "Informe o preço médio")

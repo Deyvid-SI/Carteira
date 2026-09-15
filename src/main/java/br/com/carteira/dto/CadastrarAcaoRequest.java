@@ -16,8 +16,8 @@ public class CadastrarAcaoRequest {
     @NotNull(message = "Selecione o mercado")
     private Mercado mercado;
 
-    @DecimalMin(value = "0.0000", message = "A quantidade não pode ser negativa")
-    @Digits(integer = 15, fraction = 4, message = "Quantidade inválida")
+    @DecimalMin(value = "0", message = "A quantidade não pode ser negativa")
+    @Digits(integer = 15, fraction = 0, message = "A quantidade deve ser um número inteiro")
     private BigDecimal quantidade = BigDecimal.ZERO;
 
     @DecimalMin(value = "0.0001", message = "O preço médio deve ser maior que zero")

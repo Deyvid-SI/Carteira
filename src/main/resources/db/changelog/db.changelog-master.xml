@@ -9,5 +9,7 @@
              relativeToChangelogFile="true"/>
     <include file="changes/002-criar-negociacoes.xml"
              relativeToChangelogFile="true"/>
+    <include file="changes/003-isolar-carteiras-por-usuario.xml"
+             relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

@@ -29,9 +29,9 @@ O sistema SHALL direcionar tickers brasileiros à brapi e tickers americanos à 
 - THEN nenhuma ação é persistida
 - AND a falha externa é apresentada de forma controlada
 
-### Requirement: Ticker único
+### Requirement: Ticker único por carteira
 
-O sistema SHALL comparar tickers sem diferenciar maiúsculas e minúsculas e impedir duplicidade.
+O sistema SHALL comparar tickers sem diferenciar maiúsculas e minúsculas e impedir duplicidade dentro da mesma carteira.
 
 #### Scenario: Repetição com caixa diferente
 
@@ -39,11 +39,18 @@ O sistema SHALL comparar tickers sem diferenciar maiúsculas e minúsculas e imp
 - WHEN o usuário tenta cadastrar `petr4`
 - THEN a operação é rejeitada
 
+#### Scenario: Mesmo ticker em contas diferentes
+
+- GIVEN que `PETR4` pertence à carteira de uma conta
+- WHEN outra conta cadastra `PETR4`
+- THEN o cadastro é permitido
+- AND cada conta visualiza somente a própria posição
+
 ### Requirement: Histórico de cotações
 
 O sistema SHALL registrar pontos históricos importados no cadastro e um novo ponto a cada atualização.
 
-#### Scenario: Atualização manual
+#### Scenario: Atualização pelo provedor
 
 - GIVEN uma ação cadastrada
 - WHEN a atualização é solicitada
@@ -52,7 +59,7 @@ O sistema SHALL registrar pontos históricos importados no cadastro e um novo po
 
 ### Requirement: Posição financeira
 
-O sistema SHALL registrar quantidade e preço médio de cada ativo e calcular valor investido, valor atual, resultado, rentabilidade e resultado diário estimado.
+O sistema SHALL registrar a quantidade de cada ativo em unidades inteiras, manter seu preço médio e calcular valor investido, valor atual, resultado, rentabilidade e resultado diário estimado.
 
 #### Scenario: Posição com lucro
 
@@ -67,3 +74,21 @@ O sistema SHALL registrar quantidade e preço médio de cada ativo e calcular va
 - GIVEN um ativo cadastrado
 - WHEN quantidade ou preço médio são alterados
 - THEN todos os valores financeiros e gráficos são recalculados sem consultar novamente a cotação
+
+#### Scenario: Saldo fracionário
+
+- WHEN o usuário tenta cadastrar, editar, comprar ou vender uma quantidade com casas decimais
+- THEN a operação é rejeitada
+- AND o saldo da posição permanece inalterado
+
+### Requirement: Identificação visual da empresa
+
+O sistema SHALL associar ao ativo uma URL de logo derivada do ticker e exibir uma inicial legível quando a imagem não puder ser carregada.
+
+#### Scenario: Logos dos dois mercados
+
+- GIVEN `PETR4` do mercado brasileiro e `AAPL` do mercado americano
+- WHEN os ativos são exibidos
+- THEN a ação brasileira usa o símbolo `PETR4.SA` para localizar a logo
+- AND a ação americana usa o símbolo `AAPL`
+- AND uma falha de imagem revela a inicial do ticker sem quebrar a tabela

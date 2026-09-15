@@ -29,7 +29,7 @@ public record DashboardResponse(
     public record SeriePrecoMedio(String ticker, String moeda, List<String> labels,
                                   List<BigDecimal> valores) {}
 
-    public record AtivoResumo(String ticker, String nome, String mercado, String moeda,
+    public record AtivoResumo(String ticker, String nome, String logoUrl, String mercado, String moeda,
                               BigDecimal cotacao, BigDecimal variacao, BigDecimal quantidade,
                               BigDecimal precoMedio, BigDecimal valorInvestido, BigDecimal valorAtual,
                               BigDecimal resultado, BigDecimal rentabilidade, BigDecimal resultadoDia,

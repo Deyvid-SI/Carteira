@@ -2,7 +2,6 @@ package br.com.carteira.config;
 
 import br.com.carteira.model.Usuario;
 import br.com.carteira.repository.UsuarioRepository;
-import br.com.carteira.repository.AcaoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,18 +12,16 @@ import org.springframework.util.StringUtils;
 public class DataInitializer implements CommandLineRunner {
     private final UsuarioRepository repository;
     private final PasswordEncoder encoder;
-    private final AcaoRepository acaoRepository;
     private final boolean enabled;
     private final String email;
     private final String password;
 
-    public DataInitializer(UsuarioRepository repository, PasswordEncoder encoder, AcaoRepository acaoRepository,
+    public DataInitializer(UsuarioRepository repository, PasswordEncoder encoder,
                            @Value("${app.demo-user.enabled:false}") boolean enabled,
                            @Value("${app.demo-user.email:admin@carteira.com}") String email,
                            @Value("${app.demo-user.password:}") String password) {
         this.repository = repository;
         this.encoder = encoder;
-        this.acaoRepository = acaoRepository;
         this.enabled = enabled;
         this.email = email;
         this.password = password;
@@ -44,11 +41,5 @@ public class DataInitializer implements CommandLineRunner {
             usuario.setPapel("ADMIN");
             repository.save(usuario);
         }
-        var acoes = acaoRepository.findAll();
-        acoes.forEach(acao -> {
-            acao.setQuantidade(acao.getQuantidade());
-            acao.setPrecoMedio(acao.getPrecoMedio());
-        });
-        acaoRepository.saveAll(acoes);
     }
 }

@@ -17,7 +17,11 @@ Controller → AcaoService → CotacaoGatewaySelector → brapi/Alpha Vantage
 
 ## Persistência
 
-`Acao` guarda o estado atual. `HistoricoCotacao` guarda pontos temporais ligados por chave estrangeira. O ticker possui constraint única e é normalizado em maiúsculas.
+`Acao` guarda o estado atual e pertence obrigatoriamente a um usuário. `HistoricoCotacao` guarda pontos temporais ligados por chave estrangeira. O ticker possui constraint única por usuário e é normalizado em maiúsculas.
+
+A quantidade é persistida em `DECIMAL(19,0)` e validada como unidade inteira não negativa. Valores fracionários são rejeitados antes de qualquer alteração da carteira.
+
+`Acao.getLogoUrl()` deriva uma imagem pública pelo ticker. Ativos da B3 recebem o sufixo `.SA`; ativos americanos usam o ticker original. A interface carrega a imagem de forma preguiçosa e troca para uma inicial local se o recurso externo falhar.
 
 ## Cálculos
 

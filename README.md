@@ -7,14 +7,22 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 ## Funcionalidades
 
 - Cadastro e login com Spring Security, BCrypt, validação de e-mail e política de senha.
+- Carteiras totalmente isoladas por conta: uma conta nova começa sem ações, corretoras ou negociações e nunca consulta os dados de outro usuário.
 - Cadastro de corretora somente após validação do CNPJ, registro na CVM e CEP.
 - Cadastro de ações brasileiras e americanas somente quando o ticker existe no provedor correspondente.
 - Proteção contra CNPJ, e-mail e ticker duplicados.
-- Posição por ativo com quantidade, preço médio, capital investido, patrimônio, resultado e rentabilidade.
-- Registro de compras e vendas pela cotação atual, com taxa automática zero, prévia de valores, total desembolsado/recebido e resultado realizado.
-- Atualização automática de saldo e preço médio, com bloqueio de venda acima da posição disponível.
-- Atualização manual de quantidade/preço médio, cotação e histórico persistido.
-- Dashboard financeiro com nove gráficos: cotações, desempenho normalizado, preço médio acumulado, mercado, alocação BRL, alocação USD, rentabilidade, variação diária e investido versus atual.
+- Posição por ativo com saldo em unidades inteiras, preço médio, capital investido, patrimônio, resultado e rentabilidade.
+- Registro de compras e vendas com preço de execução informado pelo usuário, taxa automática zero, prévia de valores, total desembolsado/recebido e resultado realizado.
+- Atualização automática da posição: compras recalculam o preço médio; vendas preservam o preço médio restante e só alteram saldo e resultado realizado.
+- Atualização da cotação pelo provedor com histórico persistido.
+- Dashboard financeiro com doze gráficos, incluindo quatro visões simples de preço médio: valor por ação, comparação com a cotação, distância percentual e evolução por ativo. Todos os ativos brasileiros e americanos aparecem sem limite na central de preço médio.
+- Logos das empresas identificadas pelo ticker na central de preço médio, nas posições, na gestão de ativos e no histórico, com inicial automática quando a imagem não estiver disponível.
+- Navegação superior com dez abas e atalhos diretos para resumo, preço médio, resultados, posições, ativos, negociações, histórico, corretoras, Imposto de Renda e configurações.
+- Histórico completo com busca e filtros por operação e mercado, além de volume e resultado realizado separados por moeda.
+- Tela de apoio ao Imposto de Renda com consolidação anual de vendas e resultados em BRL e USD, acompanhada de avisos sobre as limitações do cálculo.
+- Configurações locais de tema, movimento e densidade, persistidas no navegador.
+- Temas persistentes preto piano com dourado e branco com dourado, alternância instantânea e fundo original de mármore animado com suporte a movimento reduzido.
+- Identidade visual própria com símbolo geométrico de evolução financeira no lugar da antiga inicial `C`.
 - Resumos separados em BRL e USD para não somar moedas diferentes de forma incorreta.
 - API REST com paginação e erros centralizados no formato `ProblemDetail`.
 - Documentação técnica OpenAPI restrita a administradores e removida da navegação do usuário comum.
@@ -103,11 +111,11 @@ Depois registre a compra:
 ```powershell
 curl.exe -u "$env:API_EMAIL`:$env:API_PASSWORD" `
   -H "Content-Type: application/json" `
-  -d '{"acaoId":1,"tipo":"COMPRA","quantidade":100,"dataNegociacao":"2026-08-25T10:00:00"}' `
+  -d '{"acaoId":1,"tipo":"COMPRA","quantidade":100,"precoUnitario":38.50,"dataNegociacao":"2026-08-25T10:00:00"}' `
   http://localhost:8080/negociacoes
 ```
 
-Preço e taxa não são enviados pelo usuário: o backend registra a cotação atual como preço de execução e taxa zero para novas operações.
+O preço unitário é informado pelo usuário e pode partir da cotação atual sugerida pela tela. A taxa não é enviada: o backend registra taxa zero para novas operações.
 
 Swagger e os documentos OpenAPI continuam disponíveis para avaliação técnica, mas exigem uma conta com papel `ADMIN` e não aparecem no menu da aplicação.
 
@@ -138,12 +146,15 @@ src/main/resources/db/changelog/
 ├── db.changelog-master.xml
 └── changes/
     ├── 001-criar-estrutura-inicial.xml
-    └── 002-criar-negociacoes.xml
+    ├── 002-criar-negociacoes.xml
+    └── 003-isolar-carteiras-por-usuario.xml
 ```
 
 O Hibernate usa `ddl-auto: validate`: ele confere as entidades, mas não altera tabelas. O mesmo changelog é executado no H2 dos testes e no PostgreSQL. Para preservar o H2 local criado antes desta mudança, cada tabela já existente recebe uma linha de base; qualquer tabela ausente é criada pelo changelog e, em seguida, o Hibernate valida o conjunto completo.
 
 Após um changeSet ser executado, não o altere. Toda evolução futura deve entrar em um novo arquivo na pasta `changes` e ser incluída ao final do master.
+
+A migração para unidades inteiras não arredonda saldos existentes silenciosamente. Se houver alguma quantidade fracionária legada, a inicialização é interrompida com uma mensagem para que o valor seja revisado antes da conversão.
 
 ## Docker e PostgreSQL
 
@@ -201,6 +212,8 @@ Os serviços de terceiros são isolados por interfaces em `integration/gateway`.
 
 ```mermaid
 erDiagram
+    USUARIO ||--o{ CORRETORA : possui
+    USUARIO ||--o{ ACAO : possui
     USUARIO {
       bigint id PK
       string email UK
@@ -209,7 +222,8 @@ erDiagram
     }
     CORRETORA {
       bigint id PK
-      string cnpj UK
+      bigint usuario_id FK
+      string cnpj
       string razaoSocial
       boolean validadaNaCvm
     }
@@ -217,9 +231,11 @@ erDiagram
     ACAO ||--o{ NEGOCIACAO : movimenta
     ACAO {
       bigint id PK
-      string ticker UK
+      bigint usuario_id FK
+      string ticker
       string mercado
       decimal cotacaoAtual
+      integer quantidade
     }
     HISTORICO_COTACAO {
       bigint id PK
@@ -229,7 +245,7 @@ erDiagram
     NEGOCIACAO {
       bigint id PK
       string tipo
-      decimal quantidade
+      integer quantidade
       decimal precoUnitario
       decimal taxas
       decimal resultadoRealizado
@@ -243,7 +259,7 @@ erDiagram
 mvn test
 ```
 
-Os testes cobrem validação algorítmica de CNPJ, duplicidade, integrações, proteção do dashboard, restrição administrativa do OpenAPI, cálculos de compra e venda, proteção de saldo e criação do schema pelo Liquibase.
+Os testes cobrem validação algorítmica de CNPJ, duplicidade por conta, isolamento entre usuários, saldo inteiro, integrações, proteção do dashboard, restrição administrativa do OpenAPI, cálculos de compra e venda, proteção de saldo e criação do schema pelo Liquibase.
 
 ## OpenSpec
 

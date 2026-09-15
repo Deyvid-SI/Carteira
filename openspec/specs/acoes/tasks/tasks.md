@@ -6,6 +6,7 @@
 - [x] Criar entidades de ação e histórico de cotação.
 - [x] Definir constraints, precisão decimal e relacionamento.
 - [x] Implementar cálculos de posição e rentabilidade.
+- [x] Validar e persistir o saldo somente em unidades inteiras.
 
 ## Integrações
 
@@ -18,10 +19,11 @@
 ## Aplicação
 
 - [x] Implementar cadastro e atualização transacionais.
-- [x] Impedir ticker duplicado sem diferenciar caixa.
+- [x] Impedir ticker duplicado por conta sem diferenciar caixa.
 - [x] Expor consultas paginadas e busca por ticker/id.
 - [x] Criar tela de cadastro e tabela de ativos.
 - [x] Integrar dados ao dashboard.
+- [x] Exibir logos das empresas com fallback pela inicial do ticker.
 
 ## Verificação
 

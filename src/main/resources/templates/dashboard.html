@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-body">
 <div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
-<main class="app-main dashboard-main">
+<main class="app-main dashboard-main" id="visao-geral">
     <header class="topbar">
         <div><p class="eyebrow">PAINEL DE INVESTIMENTOS</p><h1>Visão completa da carteira</h1><p class="muted">Posições, patrimônio, resultados, rentabilidade e mercado em um só lugar.</p></div>
         <a class="button primary" th:href="@{/gestao/negociacoes}">⇄ Comprar ou vender</a>
@@ -28,7 +29,7 @@
         <article class="metric-card"><span class="metric-icon amber">US</span><div><small>Mercado americano</small><strong id="ativosUsa">—</strong><em>NYSE / Nasdaq</em></div></article>
     </section>
 
-    <section class="chart-grid">
+    <section class="chart-grid" id="mercado">
         <article class="panel chart-panel wide-panel">
             <div class="panel-heading"><div><p class="eyebrow">PREÇOS</p><h2>Evolução das cotações</h2><small class="heading-help">Últimos 30 registros de até 8 ativos</small></div><span class="live-dot">● dados persistidos</span></div>
             <div class="canvas-wrap"><canvas id="lineChart" aria-label="Evolução das cotações"></canvas><p class="empty-chart" id="lineEmpty">Cadastre um ativo para visualizar sua evolução.</p></div>
@@ -40,7 +41,7 @@
         </article>
     </section>
 
-    <section class="chart-grid">
+    <section class="chart-grid" id="resultados">
         <article class="panel chart-panel wide-panel">
             <div class="panel-heading"><div><p class="eyebrow">DESEMPENHO</p><h2>Rentabilidade histórica normalizada</h2><small class="heading-help">Compara ativos diferentes a partir de 0%</small></div></div>
             <div class="canvas-wrap"><canvas id="performanceChart" aria-label="Rentabilidade histórica"></canvas><p class="empty-chart" id="performanceEmpty">O histórico aparecerá após o cadastro.</p></div>
@@ -52,13 +53,44 @@
         </article>
     </section>
 
-    <section class="panel chart-panel comparison-panel">
-        <div class="panel-heading">
-            <div><p class="eyebrow">CUSTO DE AQUISIÇÃO</p><h2>Preço médio acumulado por ação</h2><small class="heading-help">Preço médio atual de cada ação apresentado em colunas</small></div>
-            <select id="averagePriceCurrency" class="chart-select" aria-label="Moeda do gráfico de preço médio"><option value="BRL">BRL · Reais</option><option value="USD">USD · Dólares</option></select>
+    <section class="panel average-center" id="preco-medio" aria-labelledby="averageCenterTitle">
+        <div class="panel-heading average-center-heading">
+            <div><p class="eyebrow">CENTRAL DE PREÇO MÉDIO</p><h2 id="averageCenterTitle">Entenda o custo de cada posição</h2><small class="heading-help">Todos os ativos cadastrados, separados entre Brasil e Estados Unidos.</small></div>
+            <label class="chart-filter-label" for="averagePriceCurrency"><span>Mercado</span><select id="averagePriceCurrency" class="chart-select" aria-label="Mercado dos gráficos de preço médio"><option value="BRL">Brasil · BRL</option><option value="USD">Estados Unidos · USD</option></select></label>
         </div>
-        <div class="canvas-wrap comparison-canvas"><canvas id="averagePriceChart" aria-label="Preço médio acumulado por ação em colunas"></canvas><p class="empty-chart" id="averagePriceEmpty">Registre uma posição para acompanhar o preço médio.</p></div>
-        <div class="chart-legend" id="averagePriceLegend"></div>
+        <div class="average-guide" aria-label="Como interpretar os gráficos">
+            <span><i class="guide-dot buy"></i><b>Compra</b> pode recalcular o preço médio</span>
+            <span><i class="guide-dot sell"></i><b>Venda</b> mantém o preço médio</span>
+            <span><i class="guide-dot quote"></i><b>Cotação</b> mostra o preço atual do mercado</span>
+            <strong id="averageAssetCount">0 ativos</strong>
+        </div>
+        <div class="average-logo-strip" id="averageLogoStrip" aria-label="Empresas do mercado selecionado"></div>
+
+        <div class="average-chart-grid">
+            <article class="average-chart-card">
+                <div class="average-card-heading"><div><p class="eyebrow">VISÃO ATUAL</p><h3>Preço médio por ação</h3><small>Cada coluna é o custo médio de uma unidade.</small></div><span class="chart-number">01</span></div>
+                <div class="chart-scroll"><div class="canvas-wrap average-canvas" id="averagePriceChartWrap"><canvas id="averagePriceChart" aria-label="Preço médio de todas as ações em colunas"></canvas><p class="empty-chart" id="averagePriceEmpty">Nenhuma ação cadastrada neste mercado.</p></div></div>
+                <div class="chart-legend" id="averagePriceLegend"></div>
+            </article>
+
+            <article class="average-chart-card">
+                <div class="average-card-heading"><div><p class="eyebrow">COMPARAÇÃO</p><h3>Preço médio × cotação atual</h3><small>Compare quanto você pagou com o valor de mercado.</small></div><span class="chart-number">02</span></div>
+                <div class="chart-scroll"><div class="canvas-wrap average-canvas" id="averageComparisonChartWrap"><canvas id="averageComparisonChart" aria-label="Comparação entre preço médio e cotação de todas as ações"></canvas><p class="empty-chart" id="averageComparisonEmpty">Nenhuma ação cadastrada neste mercado.</p></div></div>
+                <div class="chart-legend static-legend"><span><i style="background:var(--blue)"></i>Preço médio</span><span><i style="background:var(--accent)"></i>Cotação atual</span></div>
+            </article>
+
+            <article class="average-chart-card">
+                <div class="average-card-heading"><div><p class="eyebrow">DISTÂNCIA DO CUSTO</p><h3>Quanto a cotação está acima ou abaixo</h3><small>Percentual positivo indica valor acima do preço médio.</small></div><span class="chart-number">03</span></div>
+                <div class="chart-scroll"><div class="canvas-wrap average-canvas" id="averageDistanceChartWrap"><canvas id="averageDistanceChart" aria-label="Distância percentual da cotação para o preço médio"></canvas><p class="empty-chart" id="averageDistanceEmpty">Nenhuma ação cadastrada neste mercado.</p></div></div>
+                <div class="chart-legend static-legend"><span><i style="background:var(--positive)"></i>Acima do preço médio</span><span><i style="background:var(--danger)"></i>Abaixo do preço médio</span></div>
+            </article>
+
+            <article class="average-chart-card">
+                <div class="average-card-heading with-filter"><div><p class="eyebrow">HISTÓRICO</p><h3>Evolução do preço médio</h3><small>Compras podem mudar a linha; vendas mantêm o valor.</small></div><label class="chart-filter-label compact-filter" for="averageAssetSelect"><span>Ação</span><select id="averageAssetSelect" class="chart-select" aria-label="Ação do histórico de preço médio"></select></label></div>
+                <div class="canvas-wrap average-canvas"><canvas id="averageHistoryChart" aria-label="Evolução do preço médio da ação selecionada"></canvas><p class="empty-chart" id="averageHistoryEmpty">Escolha uma ação para visualizar o histórico.</p></div>
+                <div class="chart-legend" id="averageHistoryLegend"></div>
+            </article>
+        </div>
     </section>
 
     <section class="allocation-grid">
@@ -79,10 +111,10 @@
     <section class="panel chart-panel comparison-panel">
         <div class="panel-heading"><div><p class="eyebrow">CAPITAL</p><h2>Valor investido × valor atual</h2><small class="heading-help">Comparação por ativo na moeda original</small></div><select id="positionCurrency" class="chart-select"><option value="BRL">BRL · Reais</option><option value="USD">USD · Dólares</option></select></div>
         <div class="canvas-wrap comparison-canvas"><canvas id="positionChart"></canvas><p class="empty-chart" id="positionEmpty">Não há posições nesta moeda.</p></div>
-        <div class="chart-legend static-legend"><span><i style="background:#65737d"></i>Investido</span><span><i style="background:#55d6a4"></i>Atual</span></div>
+        <div class="chart-legend static-legend"><span><i style="background:var(--chart-muted)"></i>Investido</span><span><i style="background:var(--accent)"></i>Atual</span></div>
     </section>
 
-    <section class="panel table-panel portfolio-table">
+    <section class="panel table-panel portfolio-table" id="posicoes">
         <div class="panel-heading"><div><p class="eyebrow">POSIÇÕES</p><h2>Posições e preço médio</h2><small class="heading-help">Preço médio e demais valores separados entre BRL e USD</small></div><a th:href="@{/gestao/acoes}">Editar posições →</a></div>
         <div class="table-scroll">
             <table><thead><tr><th>Ativo</th><th>Mercado</th><th>Qtd.</th><th>Preço médio</th><th>Cotação</th><th>Investido</th><th>Atual</th><th>Resultado</th><th>Dia</th><th>Atualizado</th></tr></thead><tbody id="ativosBody"><tr><td colspan="10" class="table-empty">Carregando dados…</td></tr></tbody></table>

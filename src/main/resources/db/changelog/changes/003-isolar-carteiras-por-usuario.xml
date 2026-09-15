@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.31.xsd">
+
+    <changeSet id="006-isolar-carteiras-por-usuario" author="carteira-acao">
+        <preConditions onFail="HALT"
+                       onFailMessage="Existem quantidades fracionárias. Ajuste esses saldos antes de aplicar a migração para unidades inteiras.">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM acoes
+                 WHERE quantidade IS NOT NULL AND quantidade &lt;&gt; FLOOR(quantidade)
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM negociacoes
+                 WHERE quantidade &lt;&gt; FLOOR(quantidade)
+            </sqlCheck>
+        </preConditions>
+
+        <addColumn tableName="acoes">
+            <column name="usuario_id" type="BIGINT"/>
+        </addColumn>
+        <addColumn tableName="corretoras">
+            <column name="usuario_id" type="BIGINT"/>
+        </addColumn>
+
+        <sql>
+            UPDATE acoes
+               SET usuario_id = (SELECT MIN(id) FROM usuarios)
+             WHERE usuario_id IS NULL
+        </sql>
+        <sql>
+            UPDATE corretoras
+               SET usuario_id = (SELECT MIN(id) FROM usuarios)
+             WHERE usuario_id IS NULL
+        </sql>
+
+        <addNotNullConstraint tableName="acoes" columnName="usuario_id" columnDataType="BIGINT"/>
+        <addNotNullConstraint tableName="corretoras" columnName="usuario_id" columnDataType="BIGINT"/>
+        <addForeignKeyConstraint baseTableName="acoes" baseColumnNames="usuario_id"
+                                 referencedTableName="usuarios" referencedColumnNames="id"
+                                 constraintName="fk_acao_usuario"/>
+        <addForeignKeyConstraint baseTableName="corretoras" baseColumnNames="usuario_id"
+                                 referencedTableName="usuarios" referencedColumnNames="id"
+                                 constraintName="fk_corretora_usuario"/>
+
+        <dropUniqueConstraint tableName="acoes" constraintName="uk_acao_ticker"/>
+        <dropUniqueConstraint tableName="corretoras" constraintName="uk_corretora_cnpj"/>
+        <addUniqueConstraint tableName="acoes" columnNames="usuario_id,ticker"
+                             constraintName="uk_acao_usuario_ticker"/>
+        <addUniqueConstraint tableName="corretoras" columnNames="usuario_id,cnpj"
+                             constraintName="uk_corretora_usuario_cnpj"/>
+
+        <createIndex tableName="acoes" indexName="idx_acao_usuario">
+            <column name="usuario_id"/>
+        </createIndex>
+        <createIndex tableName="corretoras" indexName="idx_corretora_usuario">
+            <column name="usuario_id"/>
+        </createIndex>
+
+        <modifyDataType tableName="acoes" columnName="quantidade" newDataType="DECIMAL(19,0)"/>
+        <modifyDataType tableName="negociacoes" columnName="quantidade" newDataType="DECIMAL(19,0)"/>
+
+        <rollback>
+            <modifyDataType tableName="negociacoes" columnName="quantidade" newDataType="DECIMAL(19,4)"/>
+            <modifyDataType tableName="acoes" columnName="quantidade" newDataType="DECIMAL(19,4)"/>
+            <dropIndex tableName="corretoras" indexName="idx_corretora_usuario"/>
+            <dropIndex tableName="acoes" indexName="idx_acao_usuario"/>
+            <dropUniqueConstraint tableName="corretoras" constraintName="uk_corretora_usuario_cnpj"/>
+            <dropUniqueConstraint tableName="acoes" constraintName="uk_acao_usuario_ticker"/>
+            <addUniqueConstraint tableName="corretoras" columnNames="cnpj" constraintName="uk_corretora_cnpj"/>
+            <addUniqueConstraint tableName="acoes" columnNames="ticker" constraintName="uk_acao_ticker"/>
+            <dropForeignKeyConstraint baseTableName="corretoras" constraintName="fk_corretora_usuario"/>
+            <dropForeignKeyConstraint baseTableName="acoes" constraintName="fk_acao_usuario"/>
+            <dropColumn tableName="corretoras" columnName="usuario_id"/>
+            <dropColumn tableName="acoes" columnName="usuario_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

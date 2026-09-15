@@ -21,20 +21,25 @@ public class CorretoraService {
     private final EmpresaGateway empresaGateway;
     private final CvmGateway cvmGateway;
     private final CepGateway cepGateway;
+    private final UsuarioAtualService usuarioAtual;
 
     public CorretoraService(CorretoraRepository repository, EmpresaGateway empresaGateway,
-                            CvmGateway cvmGateway, CepGateway cepGateway) {
+                            CvmGateway cvmGateway, CepGateway cepGateway, UsuarioAtualService usuarioAtual) {
         this.repository = repository;
         this.empresaGateway = empresaGateway;
         this.cvmGateway = cvmGateway;
         this.cepGateway = cepGateway;
+        this.usuarioAtual = usuarioAtual;
     }
 
     @Transactional
     public Corretora cadastrar(CadastrarCorretoraRequest request) {
+        var usuario = usuarioAtual.obter();
         String cnpj = digits(request.getCnpj());
         if (!CnpjValidator.isValid(cnpj)) throw new RegraNegocioException("Os dígitos verificadores do CNPJ são inválidos.");
-        if (repository.existsByCnpj(cnpj)) throw new RegraNegocioException("Esta corretora já está cadastrada.");
+        if (repository.existsByCnpjAndUsuarioId(cnpj, usuario.getId())) {
+            throw new RegraNegocioException("Esta corretora já está cadastrada na sua carteira.");
+        }
 
         var empresa = empresaGateway.buscarPorCnpj(cnpj);
         var cvm = cvmGateway.validarCorretora(cnpj);
@@ -45,6 +50,7 @@ public class CorretoraService {
         var endereco = cepGateway.buscarPorCep(cep);
 
         Corretora corretora = new Corretora();
+        corretora.setUsuario(usuario);
         corretora.setCnpj(cnpj);
         corretora.setRazaoSocial(empresa.razaoSocial());
         corretora.setNomeFantasia(empresa.nomeFantasia());
@@ -64,20 +70,25 @@ public class CorretoraService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Corretora> listar(Pageable pageable) { return repository.findAll(pageable); }
+    public Page<Corretora> listar(Pageable pageable) {
+        return repository.findAllByUsuarioId(usuarioAtual.id(), pageable);
+    }
 
     @Transactional(readOnly = true)
-    public List<Corretora> listarTodos() { return repository.findAll(); }
+    public List<Corretora> listarTodos() {
+        return repository.findAllByUsuarioIdOrderByRazaoSocialAsc(usuarioAtual.id());
+    }
 
     @Transactional(readOnly = true)
     public Corretora buscar(Long id) {
-        return repository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Corretora não encontrada."));
+        return repository.findByIdAndUsuarioId(id, usuarioAtual.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Corretora não encontrada na sua carteira."));
     }
 
     @Transactional(readOnly = true)
     public Corretora buscarPorCnpj(String cnpj) {
-        return repository.findByCnpj(digits(cnpj))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Corretora não encontrada."));
+        return repository.findByCnpjAndUsuarioId(digits(cnpj), usuarioAtual.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Corretora não encontrada na sua carteira."));
     }
 
     private static String digits(String value) { return value == null ? "" : value.replaceAll("\\D", ""); }

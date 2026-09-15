@@ -24,7 +24,7 @@ O sistema SHALL gerar um documento OpenAPI e uma interface Swagger UI com todos 
 
 #### Scenario: Navegação do usuário
 
-- WHEN a barra lateral é renderizada
+- WHEN a barra superior é renderizada
 - THEN nenhum link para OpenAPI ou Swagger é exibido
 
 ### Requirement: Erros centralizados

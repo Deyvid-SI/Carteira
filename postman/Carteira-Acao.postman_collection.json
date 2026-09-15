@@ -48,8 +48,8 @@
     {
       "name": "Negociações",
       "item": [
-        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
-        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
+        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
+        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
         { "name": "Listar negociações", "request": { "method": "GET", "url": "{{baseUrl}}/negociacoes?page=0&size=20" } }
       ]
     },

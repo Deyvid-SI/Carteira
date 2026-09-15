@@ -22,7 +22,7 @@ public class Negociacao {
     @Column(nullable = false, length = 10)
     private TipoNegociacao tipo;
 
-    @Column(nullable = false, precision = 19, scale = 4)
+    @Column(nullable = false, precision = 19, scale = 0)
     private BigDecimal quantidade;
 
     @Column(nullable = false, precision = 19, scale = 4)

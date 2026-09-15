@@ -4,13 +4,18 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Entity
-@Table(name = "acoes", uniqueConstraints = @UniqueConstraint(name = "uk_acao_ticker", columnNames = "ticker"))
+@Table(name = "acoes", uniqueConstraints = @UniqueConstraint(
+        name = "uk_acao_usuario_ticker", columnNames = {"usuario_id", "ticker"}))
 public class Acao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
     @Column(nullable = false, length = 20)
     private String ticker;
     @Column(nullable = false)
@@ -24,7 +29,7 @@ public class Acao {
     private BigDecimal cotacaoAtual;
     @Column(precision = 10, scale = 4)
     private BigDecimal variacaoPercentual;
-    @Column(precision = 19, scale = 4)
+    @Column(precision = 19, scale = 0)
     private BigDecimal quantidade;
     @Column(precision = 19, scale = 4)
     private BigDecimal precoMedio;
@@ -37,6 +42,8 @@ public class Acao {
     void prePersist() { dataCadastro = LocalDateTime.now(); }
 
     public Long getId() { return id; }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
     public String getTicker() { return ticker; }
     public void setTicker(String ticker) { this.ticker = ticker; }
     public String getNomeEmpresa() { return nomeEmpresa; }
@@ -49,7 +56,7 @@ public class Acao {
     public void setCotacaoAtual(BigDecimal cotacaoAtual) { this.cotacaoAtual = cotacaoAtual; }
     public BigDecimal getVariacaoPercentual() { return variacaoPercentual; }
     public void setVariacaoPercentual(BigDecimal variacaoPercentual) { this.variacaoPercentual = variacaoPercentual; }
-    public BigDecimal getQuantidade() { return quantidade == null ? BigDecimal.ONE : quantidade; }
+    public BigDecimal getQuantidade() { return quantidade == null ? BigDecimal.ZERO : quantidade; }
     public void setQuantidade(BigDecimal quantidade) { this.quantidade = quantidade; }
     public BigDecimal getPrecoMedio() { return precoMedio == null ? cotacaoAtual : precoMedio; }
     public void setPrecoMedio(BigDecimal precoMedio) { this.precoMedio = precoMedio; }
@@ -71,6 +78,15 @@ public class Acao {
     public LocalDateTime getDataHoraCotacao() { return dataHoraCotacao; }
     public void setDataHoraCotacao(LocalDateTime dataHoraCotacao) { this.dataHoraCotacao = dataHoraCotacao; }
     public LocalDateTime getDataCadastro() { return dataCadastro; }
+
+    @Transient
+    public String getLogoUrl() {
+        if (ticker == null || ticker.isBlank()) return null;
+        String simbolo = ticker.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9.-]", "");
+        if (simbolo.isBlank()) return null;
+        if (mercado == Mercado.BRASIL && !simbolo.endsWith(".SA")) simbolo += ".SA";
+        return "https://images.financialmodelingprep.com/symbol/" + simbolo + ".png";
+    }
 
     private static BigDecimal money(BigDecimal value) { return value.setScale(4, RoundingMode.HALF_UP); }
 }

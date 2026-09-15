@@ -22,12 +22,25 @@ class AcaoCalculosTest {
     }
 
     @Test
-    void deveManterCompatibilidadeComAtivoSemPosicaoAnterior() {
+    void deveConsiderarSaldoZeroQuandoAtivoNaoPossuiPosicao() {
         Acao acao = new Acao();
         acao.setCotacaoAtual(new BigDecimal("42.50"));
 
-        assertThat(acao.getQuantidade()).isEqualByComparingTo(BigDecimal.ONE);
+        assertThat(acao.getQuantidade()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(acao.getPrecoMedio()).isEqualByComparingTo("42.50");
         assertThat(acao.getResultado()).isZero();
+    }
+
+    @Test
+    void deveGerarLogoPeloTickerParaOsDoisMercados() {
+        Acao brasileira = new Acao();
+        brasileira.setTicker("PETR4");
+        brasileira.setMercado(Mercado.BRASIL);
+        Acao americana = new Acao();
+        americana.setTicker("AAPL");
+        americana.setMercado(Mercado.ESTADOS_UNIDOS);
+
+        assertThat(brasileira.getLogoUrl()).endsWith("/PETR4.SA.png");
+        assertThat(americana.getLogoUrl()).endsWith("/AAPL.png");
     }
 }

@@ -23,7 +23,7 @@ public class NegociacaoRestController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar compra ou venda pela cotação atual do ativo")
+    @Operation(summary = "Registrar compra ou venda pelo preço informado")
     public NegociacaoResponse registrar(@Valid @RequestBody RegistrarNegociacaoRequest request) {
         return NegociacaoResponse.from(service.registrar(request));
     }

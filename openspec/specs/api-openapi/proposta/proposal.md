@@ -18,7 +18,7 @@ Controllers REST, `OpenApiConfig`, `ApiExceptionHandler`, Spring Security, teste
 
 ## Segurança
 
-OpenAPI não aparece na barra lateral. Usuário `USER` recebe HTTP 403; visitante sem credenciais recebe desafio de autenticação.
+OpenAPI não aparece na navegação superior. Usuário `USER` recebe HTTP 403; visitante sem credenciais recebe desafio de autenticação.
 
 ## Critério de conclusão
 

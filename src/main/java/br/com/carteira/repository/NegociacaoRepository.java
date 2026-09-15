@@ -9,11 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NegociacaoRepository extends JpaRepository<Negociacao, Long> {
     @EntityGraph(attributePaths = "acao")
-    Page<Negociacao> findAllByOrderByDataNegociacaoDescIdDesc(Pageable pageable);
+    Page<Negociacao> findAllByAcaoUsuarioIdOrderByDataNegociacaoDescIdDesc(Long usuarioId, Pageable pageable);
 
     @EntityGraph(attributePaths = "acao")
-    List<Negociacao> findTop200ByOrderByDataNegociacaoDescIdDesc();
+    List<Negociacao> findTop200ByAcaoUsuarioIdOrderByDataNegociacaoDescIdDesc(Long usuarioId);
 
     @EntityGraph(attributePaths = "acao")
-    List<Negociacao> findAllByOrderByDataNegociacaoAscIdAsc();
+    List<Negociacao> findAllByAcaoUsuarioIdOrderByDataNegociacaoDescIdDesc(Long usuarioId);
+
+    @EntityGraph(attributePaths = "acao")
+    List<Negociacao> findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(Long usuarioId);
 }

@@ -27,19 +27,22 @@ public class DashboardService {
     private final CorretoraRepository corretoraRepository;
     private final HistoricoCotacaoRepository historicoRepository;
     private final NegociacaoRepository negociacaoRepository;
+    private final UsuarioAtualService usuarioAtual;
 
     public DashboardService(AcaoRepository acaoRepository, CorretoraRepository corretoraRepository,
                             HistoricoCotacaoRepository historicoRepository,
-                            NegociacaoRepository negociacaoRepository) {
+                            NegociacaoRepository negociacaoRepository, UsuarioAtualService usuarioAtual) {
         this.acaoRepository = acaoRepository;
         this.corretoraRepository = corretoraRepository;
         this.historicoRepository = historicoRepository;
         this.negociacaoRepository = negociacaoRepository;
+        this.usuarioAtual = usuarioAtual;
     }
 
     @Transactional(readOnly = true)
     public DashboardResponse dados() {
-        List<Acao> acoes = acaoRepository.findAll();
+        Long usuarioId = usuarioAtual.id();
+        List<Acao> acoes = acaoRepository.findAllByUsuarioIdOrderByTickerAsc(usuarioId);
         long brasil = acoes.stream().filter(a -> a.getMercado() == Mercado.BRASIL).count();
         long usa = acoes.size() - brasil;
 
@@ -57,19 +60,20 @@ public class DashboardService {
                 .map(moeda -> resumo(moeda, acoes)).toList();
         List<SerieCotacao> series = acoes.stream().limit(8).map(this::serie).toList();
         List<SerieDesempenho> desempenhos = acoes.stream().limit(8).map(this::desempenho).toList();
-        List<Negociacao> negociacoes = negociacaoRepository.findAllByOrderByDataNegociacaoAscIdAsc();
-        List<SeriePrecoMedio> precosMedios = acoes.stream().limit(8)
+        List<Negociacao> negociacoes = negociacaoRepository
+                .findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(usuarioId);
+        List<SeriePrecoMedio> precosMedios = acoes.stream()
                 .map(a -> precoMedioAcumulado(a, negociacoes)).toList();
         List<AtivoResumo> ativos = acoes.stream()
                 .sorted(Comparator.comparing(Acao::getValorAtual).reversed())
-                .map(a -> new AtivoResumo(a.getTicker(), a.getNomeEmpresa(), a.getMercado().getDescricao(),
+                .map(a -> new AtivoResumo(a.getTicker(), a.getNomeEmpresa(), a.getLogoUrl(), a.getMercado().getDescricao(),
                         a.getMoeda(), a.getCotacaoAtual(), a.getVariacaoPercentual(), a.getQuantidade(),
                         a.getPrecoMedio(), a.getValorInvestido(), a.getValorAtual(), a.getResultado(),
                         a.getRentabilidade(), a.getResultadoDia(), a.getDataHoraCotacao()))
                 .toList();
         LocalDateTime ultima = acoes.stream().map(Acao::getDataHoraCotacao)
                 .filter(Objects::nonNull).max(LocalDateTime::compareTo).orElse(null);
-        return new DashboardResponse(acoes.size(), corretoraRepository.count(), brasil, usa, ultima,
+        return new DashboardResponse(acoes.size(), corretoraRepository.countByUsuarioId(usuarioId), brasil, usa, ultima,
                 resumos, distribuicao, alocacao, series, desempenhos, precosMedios, ativos);
     }
 

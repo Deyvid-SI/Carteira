@@ -2,12 +2,12 @@
 
 ## Modelo
 
-`Negociacao` pertence a `Acao` e armazena tipo, quantidade, preço executado, taxa, valores bruto/líquido, resultado realizado e datas. O preço executado é copiado da cotação atual persistida e a taxa de novas operações é definida pelo backend como zero; nenhum dos dois é aceito como escolha do usuário.
+`Negociacao` pertence a `Acao` e armazena tipo, quantidade, preço executado, taxa, valores bruto/líquido, resultado realizado e datas. A interface sugere a cotação atual, mas o preço executado é informado pelo usuário para representar o valor real da operação. A taxa de novas operações é definida pelo backend como zero e não é aceita como escolha do usuário.
 
 ## Compra
 
 ```text
-preçoExecutado = cotaçãoAtual
+preçoExecutado = preço informado na compra
 bruto = quantidade × preçoExecutado
 taxa = 0
 desembolso = bruto
@@ -20,7 +20,7 @@ O custo da posição usa o valor bruto. Compra não gera resultado realizado.
 ## Venda
 
 ```text
-preçoExecutado = cotaçãoAtual
+preçoExecutado = preço informado na venda
 bruto = quantidade × preçoExecutado
 taxa = 0
 recebido = bruto
@@ -29,7 +29,7 @@ resultadoRealizado = recebido − custoVendido
 novoSaldo = saldo − quantidade
 ```
 
-O preço médio restante não muda. Liquidação total zera saldo e preço médio.
+O preço executado da venda nunca participa do cálculo do preço médio. Em uma venda parcial, o preço médio restante é preservado exatamente, independentemente de haver lucro ou prejuízo. Liquidação total zera saldo e preço médio para permitir que uma futura compra inicie uma nova posição.
 
 ## Consistência
 
@@ -38,7 +38,7 @@ O preço médio restante não muda. Liquidação total zera saldo e preço médi
 ## Validações
 
 - Ativo e tipo obrigatórios.
-- Quantidade e cotação atual positivas.
+- Quantidade inteira positiva e preço de execução positivo, com até quatro casas decimais.
 - Data não futura.
 - Venda limitada ao saldo.
 
@@ -48,8 +48,8 @@ Repository usa `EntityGraph` para carregar o ativo junto da negociação e evita
 
 ## Interface e API
 
-`/gestao/negociacoes` oferece formulário, cotação e taxa somente leitura, prévia dos valores e tabela. O campo de quantidade usa teclado decimal e sanitização que remove letras. `POST /negociacoes` registra; `GET /negociacoes` lista com paginação. Dashboard e tabela de ativos direcionam ao fluxo.
+`/gestao/negociacoes` oferece formulário, cotação atual como sugestão, preço editável, taxa somente leitura, prévia dos valores e tabela. A quantidade usa teclado inteiro; o preço usa teclado decimal; ambos removem letras. `POST /negociacoes` registra; `GET /negociacoes` lista com paginação. Dashboard e tabela de ativos direcionam ao fluxo.
 
 ## Testes
 
-São verificados uso obrigatório da cotação atual, taxa automática zero, preço médio, venda parcial, resultado realizado, excesso de saldo, cotação inválida, migration, endpoints e renderização.
+São verificados preço informado, taxa automática zero, preço médio, venda parcial, resultado realizado, excesso de saldo, preço inválido, migration, endpoints e renderização.

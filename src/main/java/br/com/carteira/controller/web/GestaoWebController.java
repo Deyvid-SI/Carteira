@@ -97,8 +97,8 @@ public class GestaoWebController {
                                    @RequestParam BigDecimal quantidade,
                                    @RequestParam BigDecimal precoMedio,
                                    RedirectAttributes redirect) {
-        if (quantidade.signum() <= 0 || precoMedio.signum() <= 0) {
-            redirect.addFlashAttribute("erro", "Quantidade e preço médio devem ser maiores que zero.");
+        if (quantidade.signum() <= 0 || quantidade.stripTrailingZeros().scale() > 0 || precoMedio.signum() <= 0) {
+            redirect.addFlashAttribute("erro", "A quantidade deve ser um número inteiro e o preço médio deve ser maior que zero.");
             return "redirect:/gestao/acoes";
         }
         AtualizarPosicaoRequest request = new AtualizarPosicaoRequest();

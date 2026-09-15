@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Imposto de Renda · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('imposto-renda')}"></div>
+<main class="app-main portal-main">
+    <header class="topbar portal-topbar fiscal-topbar">
+        <div><p class="eyebrow">APOIO À DECLARAÇÃO</p><h1>Imposto de Renda</h1><p class="muted">Organize vendas e resultados realizados por ano, sempre separados por moeda.</p></div>
+        <form class="year-selector" method="get" th:action="@{/imposto-renda}">
+            <label for="ano">Ano-calendário</label>
+            <select id="ano" name="ano" data-auto-submit>
+                <option th:if="${#lists.isEmpty(anosDisponiveis)}" th:value="${anoSelecionado}" th:text="${anoSelecionado}">2026</option>
+                <option th:each="item : ${anosDisponiveis}" th:value="${item}" th:selected="${item == anoSelecionado}" th:text="${item}">2026</option>
+            </select>
+        </form>
+    </header>
+
+    <section class="fiscal-notice" role="note"><span>i</span><div><strong>Visão de apoio, não declaração oficial</strong><p th:text="${avisoFiscal}">Aviso fiscal.</p></div></section>
+
+    <section class="portal-summary-grid fiscal-summary-grid" aria-label="Resumo fiscal do ano">
+        <article class="summary-card"><span class="summary-icon">▤</span><small>Operações no ano</small><strong th:text="${resumoFiscal.operacoes}">0</strong><em th:text="${resumoFiscal.compras + ' compras · ' + resumoFiscal.vendas + ' vendas'}">0 compras · 0 vendas</em></article>
+        <article class="summary-card money-summary"><span class="summary-icon">BR</span><small>Total de vendas · BRL</small><strong th:text="${'R$ ' + #numbers.formatDecimal(resumoFiscal.vendasBrl, 1, 2, 'COMMA')}">R$ 0,00</strong><em>valor bruto alienado</em></article>
+        <article class="summary-card money-summary"><span class="summary-icon">↗</span><small>Resultado realizado · BRL</small><strong th:classappend="${resumoFiscal.resultadoRealizadoBrl.signum() < 0} ? ' negative' : ' positive'" th:text="${'R$ ' + #numbers.formatDecimal(resumoFiscal.resultadoRealizadoBrl, 1, 2, 'COMMA')}">R$ 0,00</strong><em>antes da apuração fiscal</em></article>
+        <article class="summary-card money-summary"><span class="summary-icon">US</span><small>Vendas / resultado · USD</small><strong th:text="${'US$ ' + #numbers.formatDecimal(resumoFiscal.vendasUsd, 1, 2, 'COMMA')}">US$ 0,00</strong><em th:classappend="${resumoFiscal.resultadoRealizadoUsd.signum() < 0} ? ' negative' : ' positive'" th:text="${'Resultado US$ ' + #numbers.formatDecimal(resumoFiscal.resultadoRealizadoUsd, 1, 2, 'COMMA')}">Resultado US$ 0,00</em></article>
+    </section>
+
+    <section class="fiscal-layout">
+        <article class="panel table-panel annual-panel">
+            <div class="panel-heading"><div><p class="eyebrow">VISÃO ANUAL</p><h2>Consolidação disponível</h2><small class="heading-help">BRL e USD nunca são somados entre si.</small></div></div>
+            <div class="table-scroll"><table><thead><tr><th>Ano</th><th>Operações</th><th>Vendas BRL</th><th>Resultado BRL</th><th>Vendas USD</th><th>Resultado USD</th></tr></thead><tbody>
+                <tr th:if="${#lists.isEmpty(resumosFiscais)}"><td colspan="6" class="table-empty">Registre operações para formar o resumo anual.</td></tr>
+                <tr th:each="r : ${resumosFiscais}" th:classappend="${r.ano == anoSelecionado} ? ' selected-year' : ''"><td><a th:href="@{/imposto-renda(ano=${r.ano})}" th:text="${r.ano}">2026</a></td><td th:text="${r.operacoes}">0</td><td th:text="${'R$ ' + #numbers.formatDecimal(r.vendasBrl, 1, 2, 'COMMA')}">R$ 0</td><td><span th:class="${r.resultadoRealizadoBrl.signum() >= 0} ? 'positive' : 'negative'" th:text="${'R$ ' + #numbers.formatDecimal(r.resultadoRealizadoBrl, 1, 2, 'COMMA')}">R$ 0</span></td><td th:text="${'US$ ' + #numbers.formatDecimal(r.vendasUsd, 1, 2, 'COMMA')}">US$ 0</td><td><span th:class="${r.resultadoRealizadoUsd.signum() >= 0} ? 'positive' : 'negative'" th:text="${'US$ ' + #numbers.formatDecimal(r.resultadoRealizadoUsd, 1, 2, 'COMMA')}">US$ 0</span></td></tr>
+            </tbody></table></div>
+        </article>
+        <aside class="panel fiscal-checklist">
+            <p class="eyebrow">ANTES DE DECLARAR</p><h2>Confira com seus documentos</h2>
+            <ul><li><span>01</span>Informes oficiais das corretoras</li><li><span>02</span>Notas de corretagem e custos</li><li><span>03</span>Classificação entre operações comuns e day trade</li><li><span>04</span>Câmbio oficial aplicável aos ativos no exterior</li><li><span>05</span>Eventos corporativos e prejuízos anteriores</li></ul>
+        </aside>
+    </section>
+
+    <section class="panel table-panel portal-table-panel">
+        <div class="panel-heading"><div><p class="eyebrow">MEMÓRIA DE CÁLCULO</p><h2 th:text="${'Operações registradas em ' + anoSelecionado}">Operações registradas</h2><small class="heading-help">O resultado realizado decorre do preço informado na venda menos o custo pelo preço médio.</small></div><span class="count-badge" th:text="${#lists.size(negociacoesAno) + ' registros'}">0 registros</span></div>
+        <div class="table-scroll"><table><thead><tr><th>Data</th><th>Ativo</th><th>Mercado</th><th>Tipo</th><th>Quantidade</th><th>Valor bruto</th><th>Resultado realizado</th></tr></thead><tbody>
+            <tr th:if="${#lists.isEmpty(negociacoesAno)}"><td colspan="7" class="table-empty">Nenhuma operação registrada para este ano.</td></tr>
+            <tr th:each="n : ${negociacoesAno}"><td th:text="${#temporals.format(n.dataNegociacao, 'dd/MM/yyyy')}">01/01/2026</td><td><strong th:text="${n.acao.ticker}">PETR4</strong><small class="table-sub" th:text="${n.acao.nomeEmpresa}">Empresa</small></td><td><span class="market-tag" th:text="${n.acao.mercado.descricao}">Brasil</span></td><td><span th:class="${n.tipo.name() == 'COMPRA'} ? 'operation-badge buy' : 'operation-badge sell'" th:text="${n.tipo.descricao}">Compra</span></td><td th:text="${#numbers.formatInteger(n.quantidade, 1)}">0</td><td th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.valorBruto, 1, 2, 'COMMA')}">BRL 0,00</td><td><span th:if="${n.tipo.name() == 'VENDA'}" th:class="${n.resultadoRealizado.signum() >= 0} ? 'positive' : 'negative'" th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.resultadoRealizado, 1, 2, 'COMMA')}">BRL 0,00</span><span th:unless="${n.tipo.name() == 'VENDA'}" class="muted">—</span></td></tr>
+        </tbody></table></div>
+    </section>
+</main>
+<script th:src="@{/js/portal.js}"></script>
+</body>
+</html>

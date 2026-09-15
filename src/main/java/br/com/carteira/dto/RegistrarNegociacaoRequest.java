@@ -17,9 +17,14 @@ public class RegistrarNegociacaoRequest {
     private TipoNegociacao tipo;
 
     @NotNull(message = "Informe a quantidade.")
-    @DecimalMin(value = "0.0001", message = "A quantidade deve ser maior que zero.")
-    @Digits(integer = 15, fraction = 4)
+    @DecimalMin(value = "1", message = "A quantidade deve ser maior que zero.")
+    @Digits(integer = 15, fraction = 0, message = "A quantidade deve ser um número inteiro.")
     private BigDecimal quantidade;
+
+    @NotNull(message = "Informe o preço da compra ou venda.")
+    @DecimalMin(value = "0.0001", message = "O preço deve ser maior que zero.")
+    @Digits(integer = 15, fraction = 4, message = "Preço inválido.")
+    private BigDecimal precoUnitario;
 
     @NotNull(message = "Informe a data da negociação.")
     @PastOrPresent(message = "A data da negociação não pode estar no futuro.")
@@ -32,6 +37,8 @@ public class RegistrarNegociacaoRequest {
     public void setTipo(TipoNegociacao tipo) { this.tipo = tipo; }
     public BigDecimal getQuantidade() { return quantidade; }
     public void setQuantidade(BigDecimal quantidade) { this.quantidade = quantidade; }
+    public BigDecimal getPrecoUnitario() { return precoUnitario; }
+    public void setPrecoUnitario(BigDecimal precoUnitario) { this.precoUnitario = precoUnitario; }
     public LocalDateTime getDataNegociacao() { return dataNegociacao; }
     public void setDataNegociacao(LocalDateTime dataNegociacao) { this.dataNegociacao = dataNegociacao; }
 }

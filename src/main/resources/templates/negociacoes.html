@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Compras e vendas · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-body">
 <div th:replace="~{fragments/sidebar :: sidebar('negociacoes')}"></div>
 <main class="app-main">
     <header class="topbar">
-        <div><p class="eyebrow">MOVIMENTAÇÕES</p><h1>Compra e venda de ações</h1><p class="muted">A operação usa automaticamente a cotação atual e recalcula sua posição.</p></div>
+        <div><p class="eyebrow">MOVIMENTAÇÕES</p><h1>Compra e venda de ações</h1><p class="muted">Informe o preço realmente pago ou recebido e o sistema recalcula sua posição.</p></div>
         <a class="button secondary" th:href="@{/dashboard}">← Dashboard</a>
     </header>
     <div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
@@ -19,7 +20,7 @@
     <section class="management-grid trade-layout">
         <article class="panel form-panel">
             <div class="panel-heading"><div><p class="eyebrow">NOVA OPERAÇÃO</p><h2>Registrar negociação</h2></div></div>
-            <p class="panel-description">Você informa somente a quantidade. O preço usa a cotação atual e a taxa da operação é automática em zero.</p>
+            <p class="panel-description">A cotação atual aparece como sugestão, mas você pode informar o preço real da compra ou venda. A taxa permanece automática em zero.</p>
             <form class="stack-form" th:action="@{/gestao/negociacoes}" th:object="${negociacaoForm}" method="post">
                 <div class="alert error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
 
@@ -31,7 +32,7 @@
                             th:data-balance="${acao.quantidade}"
                             th:data-currency="${acao.moeda}"
                             th:data-ticker="${acao.ticker}"
-                            th:text="${acao.ticker + ' · saldo ' + #numbers.formatDecimal(acao.quantidade, 1, 4, 'COMMA') + ' · ' + acao.moeda}">PETR4</option>
+                            th:text="${acao.ticker + ' · saldo ' + #numbers.formatInteger(acao.quantidade, 1) + ' · ' + acao.moeda}">PETR4</option>
                 </select>
                 <small class="field-error" th:errors="*{acaoId}"></small>
 
@@ -43,14 +44,21 @@
                 <small class="field-error" th:errors="*{tipo}"></small>
 
                 <div class="trade-quote" id="tradeQuote" aria-live="polite">
-                    <div><small>Preço de execução</small><strong id="quotePrice">Selecione um ativo</strong><span>Cotação atual da carteira</span></div>
+                    <div><small>Cotação atual</small><strong id="quotePrice">Selecione um ativo</strong><span>Sugestão para o preço</span></div>
                     <div><small>Saldo disponível</small><strong id="quoteBalance">—</strong><span id="quoteTicker">em unidades</span></div>
                 </div>
 
-                <label for="quantidade">Quantidade</label>
-                <input id="quantidade" th:field="*{quantidade}" type="text" inputmode="decimal"
+                <label for="precoUnitario">Preço da compra ou venda</label>
+                <input id="precoUnitario" th:field="*{precoUnitario}" type="text" inputmode="decimal"
                        pattern="[0-9]+([.][0-9]{1,4})?" placeholder="0.0000" required data-numeric="decimal">
+                <small class="field-error" th:errors="*{precoUnitario}"></small>
+                    <small class="form-hint">Preenchido inicialmente com a cotação atual. Na venda, o preço informado calcula o resultado, mas não altera o preço médio.</small>
+
+                <label for="quantidade">Quantidade</label>
+                <input id="quantidade" th:field="*{quantidade}" type="number" inputmode="numeric"
+                       min="1" step="1" placeholder="0" required data-numeric="integer">
                 <small class="field-error" th:errors="*{quantidade}"></small>
+                <small class="form-hint">Use somente ações inteiras, sem vírgulas ou casas decimais.</small>
 
                 <label for="dataNegociacao">Data e hora</label>
                 <input id="dataNegociacao" th:field="*{dataNegociacao}" type="datetime-local" required>
@@ -64,7 +72,7 @@
                     <small id="tradeWarning">Selecione o ativo e a operação para visualizar os valores.</small>
                 </div>
 
-                <div class="info-box"><span>i</span><p><strong>Execução protegida</strong>O sistema não permite alterar preço ou taxa e recusa vendas sem saldo e cotações inválidas.</p></div>
+                <div class="info-box"><span>i</span><p><strong>Execução controlada</strong>Você define o preço da operação. A taxa é sempre zero e vendas acima do saldo são recusadas.</p></div>
                 <button class="button primary wide" id="tradeSubmit" type="submit">Registrar operação <span>→</span></button>
             </form>
         </article>
@@ -78,9 +86,9 @@
                     <tr th:if="${#lists.isEmpty(negociacoes)}"><td colspan="9" class="table-empty">Nenhuma compra ou venda registrada.</td></tr>
                     <tr th:each="n : ${negociacoes}">
                         <td><strong th:text="${#temporals.format(n.dataNegociacao, 'dd/MM/yyyy')}">01/01/2026</strong><small class="table-sub" th:text="${#temporals.format(n.dataNegociacao, 'HH:mm')}">10:00</small></td>
-                        <td><div class="asset-cell compact-asset"><span class="ticker-mark" th:text="${#strings.substring(n.acao.ticker, 0, 1)}">P</span><span><strong th:text="${n.acao.ticker}">PETR4</strong><small th:text="${n.acao.moeda}">BRL</small></span></div></td>
+                        <td><div class="asset-cell compact-asset"><span class="ticker-mark logo-mark"><img th:src="${n.acao.logoUrl}" th:alt="${'Logo da ' + n.acao.nomeEmpresa}" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><b class="logo-fallback" hidden th:text="${#strings.substring(n.acao.ticker, 0, 1)}">P</b></span><span><strong th:text="${n.acao.ticker}">PETR4</strong><small th:text="${n.acao.moeda}">BRL</small></span></div></td>
                         <td><span th:class="${n.tipo.name() == 'COMPRA'} ? 'trade-badge buy' : 'trade-badge sell'" th:text="${n.tipo.descricao}">Compra</span></td>
-                        <td th:text="${#numbers.formatDecimal(n.quantidade, 1, 4, 'COMMA')}">0</td>
+                        <td th:text="${#numbers.formatInteger(n.quantidade, 1)}">0</td>
                         <td th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.precoUnitario, 1, 2, 'COMMA')}">0</td>
                         <td th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.valorBruto, 1, 2, 'COMMA')}">0</td>
                         <td th:text="${n.acao.moeda + ' ' + #numbers.formatDecimal(n.taxas, 1, 2, 'COMMA')}">0</td>

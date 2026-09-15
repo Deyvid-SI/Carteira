@@ -12,6 +12,7 @@ import br.com.carteira.repository.HistoricoCotacaoRepository;
 import br.com.carteira.repository.NegociacaoRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -25,12 +26,12 @@ class DashboardServiceTest {
         CorretoraRepository corretoras = mock(CorretoraRepository.class);
         HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
         NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
-        when(acoes.findAll()).thenReturn(List.of(br, us));
-        when(corretoras.count()).thenReturn(1L);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(br, us));
+        when(corretoras.countByUsuarioId(7L)).thenReturn(1L);
         when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(any())).thenReturn(List.of());
-        when(negociacoes.findAllByOrderByDataNegociacaoAscIdAsc()).thenReturn(List.of());
+        when(negociacoes.findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(7L)).thenReturn(List.of());
 
-        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes).dados();
+        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes, usuarioAtual()).dados();
 
         assertThat(dashboard.totalAtivos()).isEqualTo(2);
         assertThat(dashboard.resumosPorMoeda()).filteredOn(r -> r.moeda().equals("BRL")).singleElement()
@@ -61,17 +62,71 @@ class DashboardServiceTest {
         CorretoraRepository corretoras = mock(CorretoraRepository.class);
         HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
         NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
-        when(acoes.findAll()).thenReturn(List.of(acao));
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(acao));
         when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(any())).thenReturn(List.of());
-        when(negociacoes.findAllByOrderByDataNegociacaoAscIdAsc()).thenReturn(List.of(compra));
+        when(negociacoes.findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(7L)).thenReturn(List.of(compra));
 
-        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes).dados();
+        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes, usuarioAtual()).dados();
 
         assertThat(dashboard.precosMediosAcumulados()).singleElement().satisfies(serie -> {
             assertThat(serie.ticker()).isEqualTo("PETR4");
             assertThat(serie.labels()).containsExactly("Inicial", "01/09 10:00");
             assertThat(serie.valores()).containsExactly(new BigDecimal("100.0000"), new BigDecimal("110.0000"));
         });
+    }
+
+    @Test
+    void deveManterPrecoMedioNoGraficoAposVendaComPrecoDiferente() {
+        Acao acao = acao("PETR4", "BRL", Mercado.BRASIL, "6", "100", "120");
+        Negociacao venda = new Negociacao();
+        venda.setAcao(acao);
+        venda.setTipo(TipoNegociacao.VENDA);
+        venda.setQuantidade(new BigDecimal("4"));
+        venda.setPrecoUnitario(new BigDecimal("130"));
+        venda.setTaxas(BigDecimal.ZERO);
+        venda.setValorBruto(new BigDecimal("520"));
+        venda.setValorLiquido(new BigDecimal("520"));
+        venda.setResultadoRealizado(new BigDecimal("120"));
+        venda.setDataNegociacao(LocalDateTime.of(2026, 9, 2, 10, 0));
+
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        CorretoraRepository corretoras = mock(CorretoraRepository.class);
+        HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
+        NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(acao));
+        when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(any())).thenReturn(List.of());
+        when(negociacoes.findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(7L)).thenReturn(List.of(venda));
+
+        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes, usuarioAtual()).dados();
+
+        assertThat(dashboard.precosMediosAcumulados()).singleElement().satisfies(serie -> {
+            assertThat(serie.labels()).containsExactly("Inicial", "02/09 10:00");
+            assertThat(serie.valores()).containsExactly(new BigDecimal("100.0000"), new BigDecimal("100.0000"));
+        });
+    }
+
+    @Test
+    void deveIncluirTodasAsAcoesBrasileirasEAmericanasNosGraficosDePrecoMedio() {
+        List<Acao> carteira = new ArrayList<>();
+        for (int indice = 1; indice <= 6; indice++) {
+            carteira.add(acao("BR" + indice, "BRL", Mercado.BRASIL, "10", "20", "25"));
+        }
+        for (int indice = 1; indice <= 5; indice++) {
+            carteira.add(acao("US" + indice, "USD", Mercado.ESTADOS_UNIDOS, "2", "100", "110"));
+        }
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        CorretoraRepository corretoras = mock(CorretoraRepository.class);
+        HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
+        NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(carteira);
+        when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(any())).thenReturn(List.of());
+        when(negociacoes.findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(7L)).thenReturn(List.of());
+
+        var dashboard = new DashboardService(acoes, corretoras, historicos, negociacoes, usuarioAtual()).dados();
+
+        assertThat(dashboard.precosMediosAcumulados()).hasSize(11);
+        assertThat(dashboard.precosMediosAcumulados()).filteredOn(s -> s.moeda().equals("BRL")).hasSize(6);
+        assertThat(dashboard.precosMediosAcumulados()).filteredOn(s -> s.moeda().equals("USD")).hasSize(5);
     }
 
     private Acao acao(String ticker, String moeda, Mercado mercado, String quantidade,
@@ -82,5 +137,11 @@ class DashboardServiceTest {
         acao.setCotacaoAtual(new BigDecimal(cotacao)); acao.setVariacaoPercentual(BigDecimal.ZERO);
         acao.setDataHoraCotacao(LocalDateTime.now());
         return acao;
+    }
+
+    private UsuarioAtualService usuarioAtual() {
+        UsuarioAtualService usuarioAtual = mock(UsuarioAtualService.class);
+        when(usuarioAtual.id()).thenReturn(7L);
+        return usuarioAtual;
     }
 }
