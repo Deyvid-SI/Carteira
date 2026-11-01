@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +31,12 @@ public class ApiExceptionHandler {
         ProblemDetail detail = problem(HttpStatus.BAD_GATEWAY, "Falha em serviço externo", ex.getMessage(), request);
         detail.setProperty("servico", ex.getServico());
         return detail;
+    }
+
+    /** Mesma mensagem para senha errada, conta inexistente ou desativada, sem revelar quais e-mails existem. */
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail authentication(AuthenticationException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNAUTHORIZED, "Não autenticado", "E-mail ou senha inválidos.", request);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
