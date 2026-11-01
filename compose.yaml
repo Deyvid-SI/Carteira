@@ -33,6 +33,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-carteira_acao}
       DB_USERNAME: ${POSTGRES_USER:-carteira}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-60m}
+      JWT_ISSUER: ${JWT_ISSUER:-carteira-acao}
       DEMO_USER_ENABLED: ${DEMO_USER_ENABLED:-false}
       DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-admin@carteira.com}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}

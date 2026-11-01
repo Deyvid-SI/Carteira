@@ -13,5 +13,10 @@ spring:
   thymeleaf:
     cache: false
 app:
+  jwt:
+    # Chave exclusiva do ambiente de testes. Nunca use esta chave em desenvolvimento ou produção.
+    secret: chave-exclusiva-para-testes-da-carteira-0123456789
+    expiration: 15m
+    issuer: carteira-acao-test
   demo-user:
     enabled: false

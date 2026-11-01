@@ -45,6 +45,11 @@ integracoes:
     api-key: ${ALPHA_VANTAGE_API_KEY:demo}
 
 app:
+  jwt:
+    # Obrigatória: pelo menos 32 bytes aleatórios, somente no ambiente (.env ou variável do sistema).
+    secret: ${JWT_SECRET:}
+    expiration: ${JWT_EXPIRATION:60m}
+    issuer: ${JWT_ISSUER:carteira-acao}
   demo-user:
     enabled: ${DEMO_USER_ENABLED:false}
     email: ${DEMO_USER_EMAIL:admin@carteira.com}
