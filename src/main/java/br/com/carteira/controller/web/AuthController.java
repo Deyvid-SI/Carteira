@@ -5,6 +5,7 @@ import br.com.carteira.exception.RegraNegocioException;
 import br.com.carteira.service.UsuarioService;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.Objects;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -33,7 +34,7 @@ public class AuthController {
     @PostMapping("/cadastro")
     public String cadastrar(@Valid @ModelAttribute("usuario") CadastroUsuarioRequest request,
                             BindingResult binding) {
-        if (!request.getSenha().equals(request.getConfirmarSenha())) {
+        if (!Objects.equals(request.getSenha(), request.getConfirmarSenha())) {
             binding.rejectValue("confirmarSenha", "senhas.diferentes", "As senhas não conferem");
         }
         if (binding.hasErrors()) return "cadastro";

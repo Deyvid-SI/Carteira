@@ -89,6 +89,38 @@ class CadastroWebIntegrationTest {
     }
 
     @Test
+    @DisplayName("Requisição sem o campo senha volta para a tela com erro, sem criar conta")
+    void deveRecusarCadastroSemCampoSenha() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf()).param("nome", "Nova Investidora").param("email", EMAIL))
+                .andExpect(status().isOk())
+                .andExpect(view().name("cadastro"))
+                .andExpect(model().attributeHasFieldErrors("usuario", "senha"))
+                .andExpect(content().string(containsString("Informe uma senha")));
+
+        assertThat(usuarioRepository.existsByEmailIgnoreCase(EMAIL)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Requisição sem nenhum campo aponta erro em todos eles")
+    void deveRecusarCadastroSemNenhumCampo() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("cadastro"))
+                .andExpect(model().attributeHasFieldErrors("usuario", "nome", "email", "senha", "confirmarSenha"));
+    }
+
+    @Test
+    @DisplayName("Confirmação sem senha é recusada como senhas diferentes")
+    void deveRecusarConfirmacaoSemSenha() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf()).param("nome", "Nova Investidora").param("email", EMAIL)
+                        .param("confirmarSenha", "SenhaForte123"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("usuario", "senha", "confirmarSenha"));
+
+        assertThat(usuarioRepository.existsByEmailIgnoreCase(EMAIL)).isFalse();
+    }
+
+    @Test
     @DisplayName("E-mail já cadastrado é informado na tela")
     void deveRecusarEmailDuplicado() throws Exception {
         Usuario existente = new Usuario();
