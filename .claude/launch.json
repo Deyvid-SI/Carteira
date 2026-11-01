@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "carteira-acao",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": ["-q", "spring-boot:run"],
+      "port": 8080
+    }
+  ]
+}
