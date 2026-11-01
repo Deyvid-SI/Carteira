@@ -6,7 +6,7 @@
 - [x] Implementar controllers REST por capacidade.
 - [x] Adicionar paginação às listagens.
 - [x] Gerar contrato OpenAPI em runtime.
-- [x] Configurar autenticação HTTP Basic no contrato.
+- [x] Configurar autenticação Bearer JWT no contrato.
 
 ## Erros
 

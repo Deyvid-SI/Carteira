@@ -7,6 +7,9 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 ## Funcionalidades
 
 - Cadastro e login com Spring Security, BCrypt, validação de e-mail e política de senha.
+- API REST em `/api/**` protegida por JWT (HS256) stateless, com login em `POST /api/auth/login`; o portal web continua usando sessão e CSRF.
+- Controle de acesso por papéis (`USER` e `ADMIN`) com `@EnableMethodSecurity` e `@PreAuthorize`; somente `ADMIN` gerencia usuários.
+- Cobertura de testes medida pelo JaCoCo, com portão que reprova o build abaixo do mínimo versionado.
 - Carteiras totalmente isoladas por conta: uma conta nova começa sem ações, corretoras ou negociações e nunca consulta os dados de outro usuário.
 - Cadastro de corretora somente após validação do CNPJ, registro na CVM e CEP.
 - Cadastro de ações brasileiras e americanas somente quando o ticker existe no provedor correspondente.
@@ -35,6 +38,12 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 ## Executar localmente com H2
 
 Pré-requisitos: Java 17+ e Maven 3.9+.
+
+A API exige a variável `JWT_SECRET` com pelo menos 32 bytes aleatórios. Sem ela, a aplicação não inicia e informa o motivo. Gere uma chave e coloque-a no `.env` (ou na configuração de execução da IDE):
+
+```powershell
+$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
+```
 
 ```powershell
 mvn spring-boot:run
@@ -77,49 +86,100 @@ Sem chave própria da Alpha Vantage, a chave pública `demo` normalmente permite
 
 Os clientes possuem timeout de conexão/leitura. Erros de ticker, CNPJ ou CEP inexistente, indisponibilidade e limites externos são convertidos em mensagens de domínio e, na API, retornados como HTTP `422` ou `502`.
 
+## Segurança da API com JWT
+
+A aplicação possui duas cadeias de filtros do Spring Security:
+
+| Cadeia | Rotas | Autenticação | Estado | CSRF |
+|---|---|---|---|---|
+| API | `/api/**` | `Authorization: Bearer <JWT>` | Stateless (sem sessão) | Desabilitado: a credencial vai no cabeçalho, não em cookie |
+| Portal | demais rotas | Formulário de login | Sessão HTTP | Habilitado nos formulários |
+
+Fluxo do token:
+
+1. `POST /api/auth/login` recebe `email` e `senha`;
+2. o `AuthenticationManager` consulta a conta pelo `UsuarioDetailsService` e compara a senha com o hash BCrypt;
+3. somente após a autenticação é emitido um JWT assinado com HS256, contendo `iss`, `sub` (e-mail), `iat`, `exp` e `authorities` (ex.: `ROLE_USER`);
+4. cada requisição seguinte envia o token; o `JwtDecoder` confere assinatura, expiração e emissor antes de chegar ao controller.
+
+O JWT não contém senha, CPF ou outro dado sigiloso: header e payload são apenas Base64URL e podem ser lidos por qualquer pessoa que tenha o token. A assinatura impede alteração, não leitura.
+
+Variáveis de ambiente: `JWT_SECRET` (obrigatória, ≥ 32 bytes, diferente por ambiente e nunca versionada), `JWT_EXPIRATION` (padrão `60m`) e `JWT_ISSUER` (padrão `carteira-acao`). Um token já emitido continua válido até `exp`; desativar a conta impede apenas novos logins.
+
+| Código | Quando ocorre |
+|---|---|
+| `401 Unauthorized` | Token ausente, adulterado, expirado ou de outro emissor; login com credenciais inválidas ou conta desativada |
+| `403 Forbidden` | Token válido, mas o papel não permite a operação (ex.: `USER` em `/api/usuarios`) |
+
+### Matriz de acesso
+
+| Recurso ou operação | Público | `USER` | `ADMIN` |
+|---|:---:|:---:|:---:|
+| `POST /api/auth/login` | Sim | Sim | Sim |
+| `GET /api/auth/me` | Não | Sim | Sim |
+| Consultar e registrar ações, negociações, corretoras e dashboard **da própria carteira** | Não | Sim | Sim |
+| Consultar ou alterar a carteira de outra conta | Não | Não | Não |
+| Gerenciar usuários (`/api/usuarios`) | Não | Não | Sim |
+| Swagger/OpenAPI e console H2 (pelo portal) | Não | Não | Sim |
+
+- **Autorização vertical** (papel): `@PreAuthorize("hasRole('ADMIN')")` na classe `UsuarioRestController`, perto da operação, para que a exigência acompanhe todos os métodos mesmo se a URL mudar. Swagger e H2 são restritos por URL porque não são controllers da aplicação.
+- **Autorização horizontal** (propriedade dos dados): cada ação e corretora pertence a uma conta (`usuario_id`), e os serviços consultam sempre pelo usuário autenticado (`UsuarioAtualService`). O token de uma conta recebe `404` ao pedir o ativo de outra. Por isso as operações da carteira não exigem `ADMIN`: o próprio investidor registra suas compras e vendas, mas só enxerga e altera os próprios dados.
+- Contas não são excluídas: a desativação (`ativo=false`) preserva o histórico e impede novos logins.
+
 ## Endpoints da API
 
-Os endpoints de negócio exigem autenticação (sessão da interface ou HTTP Basic):
+Todos exigem `Authorization: Bearer <token>`, exceto o login:
 
 | Método | Endpoint | Finalidade |
 |---|---|---|
-| `POST` | `/corretoras` | Cadastrar corretora após três validações externas |
-| `GET` | `/corretoras` | Listar com paginação (`page`, `size`, `sort`) |
-| `GET` | `/corretoras/{id}` | Buscar por id |
-| `GET` | `/corretoras/cnpj/{cnpj}` | Buscar por CNPJ |
-| `POST` | `/acoes` | Validar e cadastrar ticker |
-| `GET` | `/acoes` | Listar com paginação |
-| `GET` | `/acoes/{id}` | Buscar por id |
-| `GET` | `/acoes/ticker/{ticker}` | Buscar por ticker |
-| `PUT` | `/acoes/{id}/atualizar-cotacao` | Consultar novamente e registrar histórico |
-| `PUT` | `/acoes/{id}/posicao` | Atualizar quantidade e preço médio |
-| `POST` | `/negociacoes` | Registrar uma compra ou venda e recalcular a posição |
-| `GET` | `/negociacoes` | Listar histórico paginado da mais recente para a mais antiga |
-| `GET` | `/dashboard/dados` | Dados dos indicadores, gráficos e tabela |
+| `POST` | `/api/auth/login` | Autenticar e receber o JWT |
+| `GET` | `/api/auth/me` | E-mail e permissões representados pelo token |
+| `GET` | `/api/usuarios` | Listar usuários (ADMIN) |
+| `GET` | `/api/usuarios/{id}` | Consultar usuário (ADMIN) |
+| `POST` | `/api/usuarios` | Cadastrar usuário com papel (ADMIN) |
+| `PUT` | `/api/usuarios/{id}` | Alterar nome, e-mail, papel e situação (ADMIN) |
+| `PUT` | `/api/usuarios/{id}/senha` | Definir nova senha — `204 No Content` (ADMIN) |
+| `POST` | `/api/corretoras` | Cadastrar corretora após três validações externas |
+| `GET` | `/api/corretoras` | Listar com paginação (`page`, `size`, `sort`) |
+| `GET` | `/api/corretoras/{id}` | Buscar por id |
+| `GET` | `/api/corretoras/cnpj/{cnpj}` | Buscar por CNPJ |
+| `POST` | `/api/acoes` | Validar e cadastrar ticker |
+| `GET` | `/api/acoes` | Listar com paginação |
+| `GET` | `/api/acoes/{id}` | Buscar por id |
+| `GET` | `/api/acoes/ticker/{ticker}` | Buscar por ticker |
+| `PUT` | `/api/acoes/{id}/atualizar-cotacao` | Consultar novamente e registrar histórico |
+| `PUT` | `/api/acoes/{id}/posicao` | Atualizar quantidade e preço médio |
+| `POST` | `/api/negociacoes` | Registrar uma compra ou venda e recalcular a posição |
+| `GET` | `/api/negociacoes` | Listar histórico paginado da mais recente para a mais antiga |
+| `GET` | `/api/dashboard/dados` | Dados dos indicadores, gráficos e tabela |
 
-Exemplo:
+Nenhuma resposta de usuário contém `senha` ou o hash: `UsuarioResponse` simplesmente não possui esse campo.
+
+Exemplo — obter o token:
 
 ```powershell
-curl.exe -u "$env:API_EMAIL`:$env:API_PASSWORD" `
-  -H "Content-Type: application/json" `
-  -d '{"ticker":"PETR4","mercado":"BRASIL"}' `
-  http://localhost:8080/acoes
+$login = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/auth/login `
+  -ContentType "application/json" `
+  -Body (@{ email = $env:API_EMAIL; senha = $env:API_PASSWORD } | ConvertTo-Json)
+$headers = @{ Authorization = "Bearer $($login.token)" }
 ```
 
-Depois registre a compra:
+Cadastrar uma ação e registrar a compra:
 
 ```powershell
-curl.exe -u "$env:API_EMAIL`:$env:API_PASSWORD" `
-  -H "Content-Type: application/json" `
-  -d '{"acaoId":1,"tipo":"COMPRA","quantidade":100,"precoUnitario":38.50,"dataNegociacao":"2026-08-25T10:00:00"}' `
-  http://localhost:8080/negociacoes
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/acoes -Headers $headers `
+  -ContentType "application/json" -Body '{"ticker":"PETR4","mercado":"BRASIL"}'
+
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/negociacoes -Headers $headers `
+  -ContentType "application/json" `
+  -Body '{"acaoId":1,"tipo":"COMPRA","quantidade":100,"precoUnitario":38.50,"dataNegociacao":"2026-08-25T10:00:00"}'
 ```
 
 O preço unitário é informado pelo usuário e pode partir da cotação atual sugerida pela tela. A taxa não é enviada: o backend registra taxa zero para novas operações.
 
-Swagger e os documentos OpenAPI continuam disponíveis para avaliação técnica, mas exigem uma conta com papel `ADMIN` e não aparecem no menu da aplicação.
+Swagger (`/swagger-ui.html`) e os documentos OpenAPI continuam disponíveis para avaliação técnica, mas exigem estar logado no portal com uma conta `ADMIN` e não aparecem no menu da aplicação. Para testar endpoints pelo Swagger, use o botão **Authorize** com o token obtido no login.
 
-A coleção pronta está em `postman/Carteira-Acao.postman_collection.json`.
+A coleção pronta está em `postman/Carteira-Acao.postman_collection.json`. Execute primeiro **Autenticação > Login**: o script pós-resposta salva o token na variável `{{token}}`, usada automaticamente como Bearer Token pelas demais requisições.
 
 ## Bancos de dados
 
@@ -164,7 +224,7 @@ Pré-requisito: Docker Desktop com Docker Compose.
 Copy-Item .env.example .env
 ```
 
-Edite `.env`, defina uma senha local e execute:
+Edite `.env`, defina uma senha local e uma `JWT_SECRET` própria (o Compose recusa subir sem ela) e execute:
 
 ```powershell
 mvn test
@@ -195,8 +255,8 @@ O segundo comando é destrutivo e deve ser usado somente quando a intenção for
 
 ```mermaid
 flowchart LR
-    UI[Thymeleaf + Canvas] --> WEB[Controllers web]
-    CLIENT[Postman / cliente REST] --> API[Controllers REST]
+    UI[Thymeleaf + Canvas] -->|sessão| WEB[Controllers web]
+    CLIENT[Postman / cliente REST] -->|Bearer JWT| API[Controllers REST /api]
     WEB --> SERVICE[Services / regras de negócio]
     API --> SERVICE
     SERVICE --> REPO[Spring Data JPA]
@@ -253,13 +313,37 @@ erDiagram
     }
 ```
 
-## Testes
+## Testes e cobertura
 
 ```powershell
-mvn test
+mvn test           # apenas executa os testes
+mvn clean verify   # testes + relatório JaCoCo + portão de cobertura
 ```
 
-Os testes cobrem validação algorítmica de CNPJ, duplicidade por conta, isolamento entre usuários, saldo inteiro, integrações, proteção do dashboard, restrição administrativa do OpenAPI, cálculos de compra e venda, proteção de saldo e criação do schema pelo Liquibase.
+Os testes cobrem validação algorítmica de CNPJ, duplicidade por conta, isolamento entre usuários, saldo inteiro, integrações, proteção do dashboard, restrição administrativa do OpenAPI, cálculos de compra e venda, proteção de saldo e criação do schema pelo Liquibase. A segurança é verificada em dois níveis:
+
+- `AuthApiIntegrationTest` usa o JWT real: emissão do token, senha incorreta, e-mail inexistente, conta desativada, ausência de token, payload adulterado, token expirado, emissor diferente, `403` para `USER` e isolamento entre carteiras;
+- `UsuarioApiIntegrationTest` usa usuários simulados (`user(...).roles(...)`) para focar na regra de autorização: cadastro com hash BCrypt, resposta sem senha, duplicidade, política de senha, alteração de papel/situação, troca de senha e `403` para `USER`;
+- `UsuarioServiceTest`, `UsuarioDetailsServiceTest`, `JwtPropertiesTest` (valores de fronteira de 31/32 bytes) e `DataInitializerTest` são unitários com Mockito.
+
+O `mvn clean verify` gera `target/site/jacoco/index.html` (também `jacoco.xml` e `jacoco.csv`). Verde indica código executado, vermelho não executado e amarelo uma decisão com apenas um dos caminhos exercitado.
+
+| Medição | Linhas | Ramos |
+|---|---:|---:|
+| Antes das aulas 13–15 (34 testes) | 54,9% | 32,0% |
+| Após as aulas 13–15 (84 testes) | 65,5% | 40,7% |
+| Portão versionado no `pom.xml` | 65% | 40% |
+| Meta acadêmica | 80% | 80% |
+
+O portão é a realidade medida arredondada para baixo: impede regressão, e deve subir gradualmente (`40% → 50% → 60% → 70% → 80%` de ramos) à medida que novos testes de comportamento forem escritos. As maiores lacunas estão nos clientes das APIs externas (`BrapiCotacaoClient`, `AlphaVantageCotacaoClient`, `BrasilApiClient`, `ViaCepClient`), em `AcaoService`, `CorretoraService` e `GestaoWebController`. Não é permitido atingir a meta reduzindo limites, criando exclusões arbitrárias ou escrevendo testes sem asserções.
+
+Para observar o portão reprovando um build com todos os testes verdes:
+
+```powershell
+mvn verify "-Djacoco.minimum.branch.coverage=0.80"
+```
+
+Cobertura mede o que foi executado, não o que foi verificado: ela é um diagnóstico e um piso, não uma prova de correção.
 
 ## OpenSpec
 

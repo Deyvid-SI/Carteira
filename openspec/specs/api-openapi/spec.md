@@ -20,7 +20,7 @@ O sistema SHALL gerar um documento OpenAPI e uma interface Swagger UI com todos 
 
 - GIVEN um usuário autenticado com papel `ADMIN`
 - WHEN `/v3/api-docs` é solicitado
-- THEN um documento OpenAPI contendo `/acoes`, `/corretoras`, `/negociacoes` e `/dashboard/dados` é retornado
+- THEN um documento OpenAPI contendo `/api/acoes`, `/api/corretoras`, `/api/negociacoes`, `/api/dashboard/dados`, `/api/auth/login` e `/api/usuarios` é retornado
 
 #### Scenario: Navegação do usuário
 

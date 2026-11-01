@@ -9,7 +9,7 @@ Dados financeiros e operações de carteira não podem ficar disponíveis sem id
 - Cadastro com nome, e-mail único e política de senha.
 - Hash BCrypt antes da persistência.
 - Login por formulário, sessão e logout seguro.
-- HTTP Basic para clientes técnicos autenticados.
+- JWT (Bearer Token) para clientes da API REST em `/api/**`.
 - Papéis `USER` e `ADMIN` para separar uso comum e administração.
 
 ## Impact

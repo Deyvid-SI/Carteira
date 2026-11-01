@@ -35,4 +35,4 @@ Invalida sessão, remove cookie `JSESSIONID` e retorna ao login.
 
 ## Segurança
 
-CSRF permanece ativo nos formulários web. Endpoints REST autenticados são ignorados pelo CSRF para uso com HTTP Basic.
+CSRF permanece ativo nos formulários web. A API `/api/**` usa uma cadeia própria, stateless e autenticada por JWT no cabeçalho `Authorization`; como nenhum cookie autentica essas rotas, o CSRF é desabilitado somente nela.

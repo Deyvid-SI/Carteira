@@ -24,11 +24,11 @@ Campos adicionais incluem timestamp, instância e erros por campo quando aplicá
 
 ## Contrato
 
-Springdoc inspeciona controllers e anotações. `OpenApiConfig` define metadados e HTTP Basic. O contrato continua gerado em runtime para não divergir do código.
+Springdoc inspeciona controllers e anotações. `OpenApiConfig` define metadados e o esquema Bearer JWT; `springdoc.paths-to-match` limita o contrato a `/api/**`. O contrato continua gerado em runtime para não divergir do código.
 
 ## Controle de acesso
 
-Matchers de Swagger, `/v3/api-docs/**` e H2 Console exigem `ROLE_ADMIN`. Endpoints de negócio exigem autenticação e aceitam sessão ou HTTP Basic.
+Matchers de Swagger, `/v3/api-docs/**` e H2 Console exigem `ROLE_ADMIN`. Endpoints de negócio ficam em `/api/**` e exigem Bearer Token JWT; o portal usa sessão.
 
 ## Testes
 
