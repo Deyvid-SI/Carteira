@@ -19,8 +19,9 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String papel = "USER";
+    private Papel papel = Papel.USER;
 
     @Column(nullable = false)
     private boolean ativo = true;
@@ -38,8 +39,8 @@ public class Usuario {
     public void setEmail(String email) { this.email = email; }
     public String getSenha() { return senha; }
     public void setSenha(String senha) { this.senha = senha; }
-    public String getPapel() { return papel; }
-    public void setPapel(String papel) { this.papel = papel; }
+    public Papel getPapel() { return papel; }
+    public void setPapel(Papel papel) { this.papel = papel; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public LocalDateTime getDataCadastro() { return dataCadastro; }

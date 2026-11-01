@@ -1,5 +1,6 @@
 package br.com.carteira.config;
 
+import br.com.carteira.model.Papel;
 import br.com.carteira.model.Usuario;
 import br.com.carteira.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
             usuario.setNome("Administrador da carteira");
             usuario.setEmail(email);
             usuario.setSenha(encoder.encode(password));
-            usuario.setPapel("ADMIN");
+            usuario.setPapel(Papel.ADMIN);
             repository.save(usuario);
         }
     }
