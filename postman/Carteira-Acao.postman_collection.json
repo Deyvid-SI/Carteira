@@ -1,23 +1,90 @@
 {
   "info": {
     "name": "Carteira de Ações",
-    "description": "Endpoints do trabalho acadêmico. Use HTTP Basic com o usuário de demonstração ou altere as variáveis.",
+    "description": "Endpoints do trabalho acadêmico. Execute primeiro 'Autenticação > Login': o script pós-resposta salva o JWT na variável {{token}}, usada como Bearer Token por todas as outras requisições.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
-    "type": "basic",
-    "basic": [
-      { "key": "username", "value": "{{email}}", "type": "string" },
-      { "key": "password", "value": "{{senha}}", "type": "string" }
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
     ]
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "email", "value": "admin@carteira.com" },
     { "key": "senha", "value": "troque-esta-senha" },
-    { "key": "acaoId", "value": "1" }
+    { "key": "token", "value": "" },
+    { "key": "acaoId", "value": "1" },
+    { "key": "usuarioId", "value": "2" }
   ],
   "item": [
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const resposta = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", resposta.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"senha\": \"{{senha}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        { "name": "Usuário do token", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" } },
+        {
+          "name": "Sem token (espera 401)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/acoes" }
+        }
+      ]
+    },
+    {
+      "name": "Usuários (somente ADMIN)",
+      "item": [
+        { "name": "Listar usuários", "request": { "method": "GET", "url": "{{baseUrl}}/api/usuarios?page=0&size=20" } },
+        { "name": "Buscar usuário", "request": { "method": "GET", "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}" } },
+        {
+          "name": "Cadastrar usuário USER",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"senha\": \"SenhaDoAluno123\",\n  \"papel\": \"USER\"\n}" },
+            "url": "{{baseUrl}}/api/usuarios"
+          }
+        },
+        {
+          "name": "Alterar papel e situação",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"papel\": \"USER\",\n  \"ativo\": false\n}" },
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
+          }
+        },
+        {
+          "name": "Definir nova senha",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"senha\": \"NovaSenha456\"\n}" },
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/senha"
+          }
+        }
+      ]
+    },
     {
       "name": "Ações",
       "item": [
@@ -27,7 +94,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}" },
-            "url": "{{baseUrl}}/acoes"
+            "url": "{{baseUrl}}/api/acoes"
           }
         },
         {
@@ -36,21 +103,21 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"IBM\",\n  \"mercado\": \"ESTADOS_UNIDOS\"\n}" },
-            "url": "{{baseUrl}}/acoes"
+            "url": "{{baseUrl}}/api/acoes"
           }
         },
-        { "name": "Listar ações", "request": { "method": "GET", "url": "{{baseUrl}}/acoes?page=0&size=20" } },
-        { "name": "Buscar por ticker", "request": { "method": "GET", "url": "{{baseUrl}}/acoes/ticker/PETR4" } },
-        { "name": "Atualizar cotação", "request": { "method": "PUT", "url": "{{baseUrl}}/acoes/{{acaoId}}/atualizar-cotacao" } },
-        { "name": "Atualizar posição", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}" }, "url": "{{baseUrl}}/acoes/{{acaoId}}/posicao" } }
+        { "name": "Listar ações", "request": { "method": "GET", "url": "{{baseUrl}}/api/acoes?page=0&size=20" } },
+        { "name": "Buscar por ticker", "request": { "method": "GET", "url": "{{baseUrl}}/api/acoes/ticker/PETR4" } },
+        { "name": "Atualizar cotação", "request": { "method": "PUT", "url": "{{baseUrl}}/api/acoes/{{acaoId}}/atualizar-cotacao" } },
+        { "name": "Atualizar posição", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}" }, "url": "{{baseUrl}}/api/acoes/{{acaoId}}/posicao" } }
       ]
     },
     {
       "name": "Negociações",
       "item": [
-        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
-        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/negociacoes" } },
-        { "name": "Listar negociações", "request": { "method": "GET", "url": "{{baseUrl}}/negociacoes?page=0&size=20" } }
+        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/api/negociacoes" } },
+        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/api/negociacoes" } },
+        { "name": "Listar negociações", "request": { "method": "GET", "url": "{{baseUrl}}/api/negociacoes?page=0&size=20" } }
       ]
     },
     {
@@ -62,14 +129,13 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"cnpj\": \"02.332.886/0001-04\",\n  \"cep\": \"22440-032\",\n  \"numero\": \"153\",\n  \"complemento\": \"Sala 201\"\n}" },
-            "url": "{{baseUrl}}/corretoras"
+            "url": "{{baseUrl}}/api/corretoras"
           }
         },
-        { "name": "Listar corretoras", "request": { "method": "GET", "url": "{{baseUrl}}/corretoras?page=0&size=20" } },
-        { "name": "Buscar por CNPJ", "request": { "method": "GET", "url": "{{baseUrl}}/corretoras/cnpj/02332886000104" } }
+        { "name": "Listar corretoras", "request": { "method": "GET", "url": "{{baseUrl}}/api/corretoras?page=0&size=20" } },
+        { "name": "Buscar por CNPJ", "request": { "method": "GET", "url": "{{baseUrl}}/api/corretoras/cnpj/02332886000104" } }
       ]
     },
-    { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/dados" } },
-    { "name": "OpenAPI JSON (somente ADMIN)", "request": { "method": "GET", "url": "{{baseUrl}}/v3/api-docs" } }
+    { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/dados" } }
   ]
 }
