@@ -1,5 +1,6 @@
 package br.com.carteira.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +18,7 @@ import br.com.carteira.repository.UsuarioRepository;
 import com.jayway.jsonpath.JsonPath;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -32,7 +34,9 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,6 +57,7 @@ class AuthApiIntegrationTest {
     @Autowired AcaoRepository acaoRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired JwtEncoder jwtEncoder;
+    @Autowired JwtDecoder jwtDecoder;
     @Autowired JwtProperties jwtProperties;
 
     @BeforeEach
@@ -69,6 +74,19 @@ class AuthApiIntegrationTest {
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.tipo").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    @DisplayName("O próprio token carrega emissor, conta, papel e validade configurados, sem dados sigilosos")
+    void deveGravarClaimsCorretasNoToken() throws Exception {
+        Jwt jwt = jwtDecoder.decode(token(ADMIN));
+
+        assertThat(jwt.getClaimAsString("iss")).isEqualTo("carteira-acao-test");
+        assertThat(jwt.getSubject()).isEqualTo(ADMIN);
+        assertThat(jwt.getClaimAsStringList("authorities")).containsExactly("ROLE_ADMIN");
+        assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt())).isEqualTo(Duration.ofMinutes(15));
+        assertThat(jwt.getClaims()).containsOnlyKeys("iss", "sub", "iat", "exp", "authorities");
+        assertThat(jwt.getHeaders()).containsEntry("alg", "HS256");
     }
 
     @Test
