@@ -336,7 +336,7 @@ O `mvn clean verify` gera `target/site/jacoco/index.html` (também `jacoco.xml` 
 
 | Medição | Testes | Linhas | Ramos |
 |---|---:|---:|---:|
-| Antes das aulas 13–15 | 34 | 54,9% | 32,0% |
+| Antes das aulas 13–15 | 32 | 54,9% | 32,0% |
 | Após implementar as aulas 13 e 14 | 84 | 65,5% | 40,7% |
 | Atual | 248 | 99,5% | 96,0% |
 | Portão versionado no `pom.xml` (meta da aula) | — | 80% | 80% |
