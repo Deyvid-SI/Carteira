@@ -86,7 +86,7 @@ public class GestaoWebController {
         try {
             acaoService.atualizarCotacao(id);
             redirect.addFlashAttribute("sucesso", "Cotação atualizada e adicionada ao histórico.");
-        } catch (RegraNegocioException | ServicoExternoException ex) {
+        } catch (RegraNegocioException | ServicoExternoException | RecursoNaoEncontradoException ex) {
             redirect.addFlashAttribute("erro", ex.getMessage());
         }
         return "redirect:/gestao/acoes";
@@ -104,8 +104,12 @@ public class GestaoWebController {
         AtualizarPosicaoRequest request = new AtualizarPosicaoRequest();
         request.setQuantidade(quantidade);
         request.setPrecoMedio(precoMedio);
-        acaoService.atualizarPosicao(id, request);
-        redirect.addFlashAttribute("sucesso", "Posição atualizada. Os gráficos foram recalculados.");
+        try {
+            acaoService.atualizarPosicao(id, request);
+            redirect.addFlashAttribute("sucesso", "Posição atualizada. Os gráficos foram recalculados.");
+        } catch (RecursoNaoEncontradoException ex) {
+            redirect.addFlashAttribute("erro", ex.getMessage());
+        }
         return "redirect:/gestao/acoes";
     }
 

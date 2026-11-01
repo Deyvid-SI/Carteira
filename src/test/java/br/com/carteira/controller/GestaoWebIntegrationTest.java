@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -201,6 +202,49 @@ class GestaoWebIntegrationTest {
 
         assertThat(acao.getQuantidade()).isEqualByComparingTo("10");
         assertThat(acao.getPrecoMedio()).isEqualByComparingTo("20");
+    }
+
+    @Test
+    @DisplayName("Atualizar cotação de ativo inexistente avisa o usuário sem consultar o provedor")
+    void deveAvisarAtivoInexistenteAoAtualizarCotacao() throws Exception {
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", 999_999).with(investidor()).with(csrf()))
+                .andExpect(redirectedUrl("/gestao/acoes"))
+                .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
+
+        verifyNoInteractions(gateway);
+    }
+
+    @Test
+    @DisplayName("Atualizar posição de ativo inexistente avisa o usuário")
+    void deveAvisarAtivoInexistenteAoAtualizarPosicao() throws Exception {
+        mvc.perform(post("/gestao/acoes/{id}/posicao", 999_999).with(investidor()).with(csrf())
+                        .param("quantidade", "15").param("precoMedio", "22.50"))
+                .andExpect(redirectedUrl("/gestao/acoes"))
+                .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
+    }
+
+    @Test
+    @DisplayName("Ativo de outra conta recebe o mesmo aviso e continua intacto")
+    void naoDeveAlterarAtivoDeOutraContaPeloPortal() throws Exception {
+        Usuario outra = new Usuario();
+        outra.setNome("Outra conta");
+        outra.setEmail("outra-conta-web@carteira.test");
+        outra.setSenha("senha-nao-utilizada-no-mockmvc");
+        Acao alheia = acao("VALE3", "10", "20");
+        alheia.setUsuario(usuarioRepository.save(outra));
+        acaoRepository.save(alheia);
+
+        mvc.perform(post("/gestao/acoes/{id}/posicao", alheia.getId()).with(investidor()).with(csrf())
+                        .param("quantidade", "99").param("precoMedio", "1"))
+                .andExpect(redirectedUrl("/gestao/acoes"))
+                .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", alheia.getId()).with(investidor()).with(csrf()))
+                .andExpect(redirectedUrl("/gestao/acoes"))
+                .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
+
+        verifyNoInteractions(gateway);
+        assertThat(alheia.getQuantidade()).isEqualByComparingTo("10");
+        assertThat(alheia.getPrecoMedio()).isEqualByComparingTo("20");
     }
 
     @Test
