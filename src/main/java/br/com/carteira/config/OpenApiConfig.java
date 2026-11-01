@@ -14,15 +14,17 @@ public class OpenApiConfig {
 
     @Bean
     OpenAPI carteiraOpenApi() {
-        String scheme = "basicAuth";
+        String scheme = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
                         .title("Carteira de Ações API")
                         .version("1.0.0")
-                        .description("API REST para cadastro validado de corretoras e ações brasileiras e americanas.")
+                        .description("API REST para cadastro validado de corretoras e ações brasileiras e americanas. "
+                                + "Obtenha o token em POST /api/auth/login e envie-o no cabeçalho "
+                                + "Authorization: Bearer <token>.")
                         .contact(new Contact().name("Projeto acadêmico")))
                 .addSecurityItem(new SecurityRequirement().addList(scheme))
                 .components(new Components().addSecuritySchemes(scheme,
-                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("basic")));
+                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")));
     }
 }
