@@ -3,6 +3,7 @@ package br.com.carteira.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import br.com.carteira.model.Acao;
+import br.com.carteira.model.HistoricoCotacao;
 import br.com.carteira.model.Mercado;
 import br.com.carteira.model.Negociacao;
 import br.com.carteira.model.TipoNegociacao;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class DashboardServiceTest {
 
@@ -127,6 +129,87 @@ class DashboardServiceTest {
         assertThat(dashboard.precosMediosAcumulados()).hasSize(11);
         assertThat(dashboard.precosMediosAcumulados()).filteredOn(s -> s.moeda().equals("BRL")).hasSize(6);
         assertThat(dashboard.precosMediosAcumulados()).filteredOn(s -> s.moeda().equals("USD")).hasSize(5);
+    }
+
+    @Test
+    void deveMontarSeriesEmOrdemCronologicaComDesempenhoSobreOPrimeiroPonto() {
+        Acao acao = acao("PETR4", "BRL", Mercado.BRASIL, "10", "20", "25");
+        ReflectionTestUtils.setField(acao, "id", 1L);
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
+        NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(acao));
+        when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(1L)).thenReturn(List.of(
+                new HistoricoCotacao(acao, new BigDecimal("110"), LocalDateTime.of(2026, 9, 2, 10, 0)),
+                new HistoricoCotacao(acao, new BigDecimal("100"), LocalDateTime.of(2026, 9, 1, 10, 0))));
+
+        var dashboard = new DashboardService(acoes, mock(CorretoraRepository.class), historicos, negociacoes,
+                usuarioAtual()).dados();
+
+        assertThat(dashboard.series()).singleElement()
+                .satisfies(serie -> assertThat(serie.valores()).containsExactly(new BigDecimal("100"), new BigDecimal("110")));
+        assertThat(dashboard.desempenhos()).singleElement().satisfies(serie -> {
+            assertThat(serie.labels()).hasSize(2);
+            assertThat(serie.percentuais()).containsExactly(new BigDecimal("0.0000"), new BigDecimal("10.0000"));
+        });
+    }
+
+    @Test
+    void desempenhoNaoDeveDividirPorZeroQuandoPrimeiroPontoForZero() {
+        Acao acao = acao("PETR4", "BRL", Mercado.BRASIL, "10", "20", "25");
+        ReflectionTestUtils.setField(acao, "id", 1L);
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        HistoricoCotacaoRepository historicos = mock(HistoricoCotacaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(acao));
+        when(historicos.findTop30ByAcaoIdOrderByDataHoraDesc(1L)).thenReturn(List.of(
+                new HistoricoCotacao(acao, new BigDecimal("50"), LocalDateTime.of(2026, 9, 2, 10, 0)),
+                new HistoricoCotacao(acao, BigDecimal.ZERO, LocalDateTime.of(2026, 9, 1, 10, 0))));
+
+        var dashboard = new DashboardService(acoes, mock(CorretoraRepository.class), historicos,
+                mock(NegociacaoRepository.class), usuarioAtual()).dados();
+
+        assertThat(dashboard.desempenhos().get(0).percentuais()).containsExactly(BigDecimal.ZERO, BigDecimal.ZERO);
+    }
+
+    @Test
+    void ativoSemSaldoESemOperacoesDeveMostrarPontoAtual() {
+        Acao acao = acao("PETR4", "BRL", Mercado.BRASIL, "0", "0", "25");
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(acao));
+
+        var dashboard = new DashboardService(acoes, mock(CorretoraRepository.class),
+                mock(HistoricoCotacaoRepository.class), mock(NegociacaoRepository.class), usuarioAtual()).dados();
+
+        assertThat(dashboard.precosMediosAcumulados()).singleElement().satisfies(serie -> {
+            assertThat(serie.labels()).containsExactly("Atual");
+            assertThat(serie.valores()).singleElement()
+                    .satisfies(valor -> assertThat(valor).isEqualByComparingTo("0"));
+        });
+    }
+
+    @Test
+    void operacoesDeOutroAtivoComMesmoTickerNaoEntramNaSerie() {
+        Acao primeira = acao("PETR4", "BRL", Mercado.BRASIL, "10", "100", "120");
+        ReflectionTestUtils.setField(primeira, "id", 1L);
+        Acao outra = acao("PETR4", "BRL", Mercado.BRASIL, "10", "100", "120");
+        ReflectionTestUtils.setField(outra, "id", 2L);
+        Negociacao compraDaOutra = new Negociacao();
+        compraDaOutra.setAcao(outra);
+        compraDaOutra.setTipo(TipoNegociacao.COMPRA);
+        compraDaOutra.setQuantidade(new BigDecimal("10"));
+        compraDaOutra.setValorLiquido(new BigDecimal("1000"));
+        compraDaOutra.setResultadoRealizado(BigDecimal.ZERO);
+        compraDaOutra.setDataNegociacao(LocalDateTime.of(2026, 9, 1, 10, 0));
+        AcaoRepository acoes = mock(AcaoRepository.class);
+        NegociacaoRepository negociacoes = mock(NegociacaoRepository.class);
+        when(acoes.findAllByUsuarioIdOrderByTickerAsc(7L)).thenReturn(List.of(primeira));
+        when(negociacoes.findAllByAcaoUsuarioIdOrderByDataNegociacaoAscIdAsc(7L)).thenReturn(List.of(compraDaOutra));
+
+        var dashboard = new DashboardService(acoes, mock(CorretoraRepository.class),
+                mock(HistoricoCotacaoRepository.class), negociacoes, usuarioAtual()).dados();
+
+        assertThat(dashboard.precosMediosAcumulados()).singleElement()
+                .satisfies(serie -> assertThat(serie.labels()).containsExactly("Inicial"));
     }
 
     private Acao acao(String ticker, String moeda, Mercado mercado, String quantidade,
