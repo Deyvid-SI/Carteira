@@ -46,4 +46,5 @@
 - [x] Configurar JaCoCo (`prepare-agent`, `report`, `check`).
 - [x] Medir a linha de base e versionar o portão arredondado para baixo.
 - [x] Cobrir a lista de comportamentos de `UsuarioService`.
-- [ ] Elevar a cobertura de ramos gradualmente até 80%.
+- [x] Elevar a cobertura e o portão para 80% de linhas e 80% de ramos.
+- [x] Conferir a qualidade dos testes com alterações propositais no código.

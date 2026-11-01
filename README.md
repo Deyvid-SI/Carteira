@@ -326,24 +326,30 @@ Os testes cobrem validação algorítmica de CNPJ, duplicidade por conta, isolam
 - `UsuarioApiIntegrationTest` usa usuários simulados (`user(...).roles(...)`) para focar na regra de autorização: cadastro com hash BCrypt, resposta sem senha, duplicidade, política de senha, alteração de papel/situação, troca de senha e `403` para `USER`;
 - `UsuarioServiceTest`, `UsuarioDetailsServiceTest`, `JwtPropertiesTest` (valores de fronteira de 31/32 bytes) e `DataInitializerTest` são unitários com Mockito.
 
+As demais camadas seguem a mesma divisão, e nenhum teste acessa as APIs externas de verdade:
+
+- `BrapiCotacaoClientTest`, `AlphaVantageCotacaoClientTest`, `BrasilApiClientTest` e `ViaCepClientTest` usam `MockRestServiceServer` para simular respostas válidas, incompletas e falhas HTTP;
+- `AcaoServiceTest`, `CorretoraServiceTest`, `NegociacaoServiceTest`, `DashboardServiceTest` e `UsuarioAtualServiceTest` verificam as regras com repositórios e gateways simulados, incluindo valores de fronteira como vender exatamente o saldo;
+- `GestaoWebIntegrationTest`, `CadastroWebIntegrationTest` e `CarteiraApiIntegrationTest` usam MVC, validação, CSRF, Liquibase e H2 reais; apenas os clientes externos são dublês (`@MockitoBean`).
+
 O `mvn clean verify` gera `target/site/jacoco/index.html` (também `jacoco.xml` e `jacoco.csv`). Verde indica código executado, vermelho não executado e amarelo uma decisão com apenas um dos caminhos exercitado.
 
-| Medição | Linhas | Ramos |
-|---|---:|---:|
-| Antes das aulas 13–15 (34 testes) | 54,9% | 32,0% |
-| Após as aulas 13–15 (84 testes) | 65,5% | 40,7% |
-| Portão versionado no `pom.xml` | 65% | 40% |
-| Meta acadêmica | 80% | 80% |
+| Medição | Testes | Linhas | Ramos |
+|---|---:|---:|---:|
+| Antes das aulas 13–15 | 34 | 54,9% | 32,0% |
+| Após implementar as aulas 13 e 14 | 84 | 65,5% | 40,7% |
+| Atual | 248 | 99,5% | 96,0% |
+| Portão versionado no `pom.xml` (meta da aula) | — | 80% | 80% |
 
-O portão é a realidade medida arredondada para baixo: impede regressão, e deve subir gradualmente (`40% → 50% → 60% → 70% → 80%` de ramos) à medida que novos testes de comportamento forem escritos. As maiores lacunas estão nos clientes das APIs externas (`BrapiCotacaoClient`, `AlphaVantageCotacaoClient`, `BrasilApiClient`, `ViaCepClient`), em `AcaoService`, `CorretoraService` e `GestaoWebController`. Não é permitido atingir a meta reduzindo limites, criando exclusões arbitrárias ou escrevendo testes sem asserções.
+Não é permitido manter a meta reduzindo limites, criando exclusões arbitrárias ou escrevendo testes sem asserções: o `pom.xml` não possui nenhuma exclusão de cobertura.
 
-Para observar o portão reprovando um build com todos os testes verdes:
+Para observar o portão reprovando um build com todos os testes verdes, exija um valor acima do medido:
 
 ```powershell
-mvn verify "-Djacoco.minimum.branch.coverage=0.80"
+mvn verify "-Djacoco.minimum.branch.coverage=0.99"
 ```
 
-Cobertura mede o que foi executado, não o que foi verificado: ela é um diagnóstico e um piso, não uma prova de correção.
+Cobertura mede o que foi executado, não o que foi verificado: ela é um diagnóstico e um piso, não uma prova de correção. Para conferir isso, 16 alterações propositais foram aplicadas a uma cópia do código, como trocar `>` por `>=` no saldo de venda ou remover o `@PreAuthorize` de `/api/usuarios`. Com 99,5% de linhas, duas ainda passaram despercebidas: a validade gravada no JWT e o campo `erro` do ViaCEP. Os testes foram reforçados e hoje as 16 são detectadas. Essa amostra foi escolhida manualmente e não substitui uma ferramenta completa de mutação, como o PIT.
 
 ## OpenSpec
 

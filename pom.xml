@@ -21,10 +21,9 @@
         <java.version>17</java.version>
         <springdoc.version>2.8.9</springdoc.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <!-- Piso medido em 2026-10-29 (65,5% linhas / 40,7% ramos), arredondado para baixo.
-             Meta acadêmica: 80% / 80%. Suba os limites somente quando novos testes sustentarem o valor. -->
-        <jacoco.minimum.line.coverage>0.65</jacoco.minimum.line.coverage>
-        <jacoco.minimum.branch.coverage>0.40</jacoco.minimum.branch.coverage>
+        <!-- Meta da Aula 15: 80% de linhas e 80% de ramos. Não reduza estes limites para o build passar. -->
+        <jacoco.minimum.line.coverage>0.80</jacoco.minimum.line.coverage>
+        <jacoco.minimum.branch.coverage>0.80</jacoco.minimum.branch.coverage>
     </properties>
 
     <dependencies>
