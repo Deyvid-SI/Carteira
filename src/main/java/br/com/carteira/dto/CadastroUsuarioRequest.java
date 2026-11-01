@@ -15,8 +15,7 @@ public class CadastroUsuarioRequest {
     private String email;
 
     @NotBlank(message = "Informe uma senha")
-    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{8,72}$",
-            message = "Use ao menos 8 caracteres, com maiúscula, minúscula e número")
+    @Pattern(regexp = SenhaPolitica.REGEX, message = SenhaPolitica.MENSAGEM)
     private String senha;
 
     @NotBlank(message = "Confirme sua senha")
