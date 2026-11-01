@@ -169,6 +169,21 @@ class AuthApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("USER autenticado recebe 403 na administração de usuários")
+    void deveNegarAdministracaoParaUser() throws Exception {
+        mvc.perform(get("/api/usuarios").header("Authorization", "Bearer " + token(INVESTIDOR)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Usuário autenticado sem permissão para este recurso."));
+    }
+
+    @Test
+    @DisplayName("ADMIN autenticado por JWT acessa a administração de usuários")
+    void devePermitirAdministracaoParaAdmin() throws Exception {
+        mvc.perform(get("/api/usuarios").header("Authorization", "Bearer " + token(ADMIN)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("Autorização horizontal: o token de uma conta não alcança o ativo de outra")
     void deveIsolarCarteiraDeOutraContaNaApi() throws Exception {
         Acao acaoDoAdmin = acaoRepository.save(acao(usuarioRepository.findByEmailIgnoreCase(ADMIN).orElseThrow()));
