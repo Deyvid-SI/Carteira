@@ -53,7 +53,7 @@ class UsuarioIsolationIntegrationTest {
                 .andExpect(jsonPath("$.totalAtivos").value(0))
                 .andExpect(jsonPath("$.totalCorretoras").value(0));
 
-        mvc.perform(get("/acoes/{id}", acaoAlheia.getId()).with(user(novaConta.getEmail()).roles("USER")))
+        mvc.perform(get("/api/acoes/{id}", acaoAlheia.getId()).with(user(novaConta.getEmail()).roles("USER")))
                 .andExpect(status().isNotFound());
 
         mvc.perform(get("/gestao/negociacoes").with(user(novaConta.getEmail()).roles("USER")))

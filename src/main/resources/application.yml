@@ -33,6 +33,7 @@ server:
     include-message: always
 
 springdoc:
+  paths-to-match: /api/**
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method

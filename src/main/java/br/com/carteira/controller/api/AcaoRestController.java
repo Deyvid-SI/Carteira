@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/acoes")
+@RequestMapping("/api/acoes")
 @Tag(name = "Ações", description = "Ativos brasileiros via brapi e americanos via Alpha Vantage")
 public class AcaoRestController {
     private final AcaoService service;

@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/negociacoes")
+@RequestMapping("/api/negociacoes")
 @Tag(name = "Negociações", description = "Compras, vendas e atualização automática da posição")
 public class NegociacaoRestController {
     private final NegociacaoService service;

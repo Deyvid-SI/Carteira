@@ -33,10 +33,7 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID"))
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/acoes/**"),
-                                new AntPathRequestMatcher("/negociacoes/**"),
-                                new AntPathRequestMatcher("/corretoras/**"),
-                                new AntPathRequestMatcher("/dashboard/dados"),
+                                new AntPathRequestMatcher("/api/**"),
                                 new AntPathRequestMatcher("/h2-console/**")))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         return http.build();

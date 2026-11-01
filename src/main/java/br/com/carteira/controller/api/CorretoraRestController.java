@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/corretoras")
+@RequestMapping("/api/corretoras")
 @Tag(name = "Corretoras", description = "Cadastro enriquecido por Receita Federal, CVM e ViaCEP")
 public class CorretoraRestController {
     private final CorretoraService service;

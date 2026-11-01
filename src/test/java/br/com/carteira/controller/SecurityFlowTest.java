@@ -121,6 +121,6 @@ class SecurityFlowTest {
         mvc.perform(get("/v3/api-docs").with(user("admin@carteira.com").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists())
-                .andExpect(jsonPath("$.paths['/negociacoes']").exists());
+                .andExpect(jsonPath("$.paths['/api/negociacoes']").exists());
     }
 }
