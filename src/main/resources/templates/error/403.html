@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acesso restrito · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<main class="app-main denied-page">
+    <article class="panel denied-panel">
+        <h1>Esta página é restrita a administradores</h1>
+        <p class="muted">Sua conta não tem permissão para abri-la. Se precisar de acesso, fale com um administrador da plataforma.</p>
+        <a class="button primary" th:href="@{/dashboard}">Voltar ao dashboard</a>
+    </article>
+</main>
+</body>
+</html>

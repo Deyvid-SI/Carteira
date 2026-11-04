@@ -19,14 +19,14 @@ class LiquibaseMigrationTest {
                 select count(*)
                   from information_schema.tables
                  where table_schema = 'PUBLIC'
-                   and table_name in ('USUARIOS', 'CORRETORAS', 'ACOES', 'HISTORICOS_COTACAO', 'NEGOCIACOES')
+                   and table_name in ('USUARIOS', 'CORRETORAS', 'ACOES', 'HISTORICOS_COTACAO', 'NEGOCIACOES', 'ATIVIDADES_ADMIN')
                 """, Integer.class);
 
         Integer changeSetsExecutados = jdbcTemplate.queryForObject(
                 "select count(*) from databasechangelog", Integer.class);
 
-        assertThat(tabelasDaAplicacao).isEqualTo(5);
-        assertThat(changeSetsExecutados).isEqualTo(6);
+        assertThat(tabelasDaAplicacao).isEqualTo(6);
+        assertThat(changeSetsExecutados).isEqualTo(7);
 
         Integer colunasDeProprietario = jdbcTemplate.queryForObject("""
                 select count(*)

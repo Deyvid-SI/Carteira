@@ -26,6 +26,7 @@
             <a th:href="@{/gestao/corretoras}" th:classappend="${active == 'corretoras'} ? ' active' : ''"><span class="nav-icon">▣</span>Corretoras</a>
             <a th:href="@{/imposto-renda}" th:classappend="${active == 'imposto-renda'} ? ' active' : ''"><span class="nav-icon nav-icon-text">IR</span>Imposto de Renda</a>
             <a th:href="@{/configuracoes}" th:classappend="${active == 'configuracoes'} ? ' active' : ''"><span class="nav-icon">⚙</span>Configurações</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}" th:classappend="${active == 'admin'} ? ' active' : ''"><span class="nav-icon">◉</span>Administração</a>
         </nav>
 
         <div class="nav-actions">
@@ -33,8 +34,13 @@
                 <span class="theme-icon" data-theme-icon>☀</span><span data-theme-label>Modo claro</span>
             </button>
             <div class="user-chip">
-                <span class="avatar">U</span>
-                <span><strong sec:authentication="name">usuário</strong><small>Sessão protegida</small></span>
+                <span class="avatar" sec:authorize="hasRole('ADMIN')">A</span>
+                <span class="avatar" sec:authorize="!hasRole('ADMIN')">U</span>
+                <span>
+                    <strong sec:authentication="name">usuário</strong>
+                    <small sec:authorize="hasRole('ADMIN')">Administrador</small>
+                    <small sec:authorize="!hasRole('ADMIN')">Sessão protegida</small>
+                </span>
             </div>
             <form class="logout-form" th:action="@{/logout}" method="post">
                 <button class="logout-button" type="submit" title="Sair" aria-label="Sair">↪</button>

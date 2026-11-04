@@ -9,6 +9,7 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 - Cadastro e login com Spring Security, BCrypt, validação de e-mail e política de senha.
 - API REST em `/api/**` protegida por JWT (HS256) stateless, com login em `POST /api/auth/login`; o portal web continua usando sessão e CSRF.
 - Controle de acesso por papéis (`USER` e `ADMIN`) com `@EnableMethodSecurity` e `@PreAuthorize`; somente `ADMIN` gerencia usuários.
+- Área de administração no portal (`/admin`), visível só para `ADMIN`: totais do sistema, gestão de contas, registro de atividades e situação das integrações, sem acesso às carteiras de outras pessoas.
 - Cobertura de testes medida pelo JaCoCo, com portão que reprova o build abaixo do mínimo versionado.
 - Carteiras totalmente isoladas por conta: uma conta nova começa sem ações, corretoras ou negociações e nunca consulta os dados de outro usuário.
 - Cadastro de corretora somente após validação do CNPJ, registro na CVM e CEP.
@@ -120,11 +121,30 @@ Variáveis de ambiente: `JWT_SECRET` (obrigatória, ≥ 32 bytes, diferente por 
 | Consultar e registrar ações, negociações, corretoras e dashboard **da própria carteira** | Não | Sim | Sim |
 | Consultar ou alterar a carteira de outra conta | Não | Não | Não |
 | Gerenciar usuários (`/api/usuarios`) | Não | Não | Sim |
+| Área de administração do portal (`/admin`) | Não | Não | Sim |
 | Swagger/OpenAPI e console H2 (pelo portal) | Não | Não | Sim |
 
 - **Autorização vertical** (papel): `@PreAuthorize("hasRole('ADMIN')")` na classe `UsuarioRestController`, perto da operação, para que a exigência acompanhe todos os métodos mesmo se a URL mudar. Swagger e H2 são restritos por URL porque não são controllers da aplicação.
 - **Autorização horizontal** (propriedade dos dados): cada ação e corretora pertence a uma conta (`usuario_id`), e os serviços consultam sempre pelo usuário autenticado (`UsuarioAtualService`). O token de uma conta recebe `404` ao pedir o ativo de outra. Por isso as operações da carteira não exigem `ADMIN`: o próprio investidor registra suas compras e vendas, mas só enxerga e altera os próprios dados.
 - Contas não são excluídas: a desativação (`ativo=false`) preserva o histórico e impede novos logins.
+
+## Área de administração
+
+Contas com papel `ADMIN` veem o item **Administração** no menu do portal. Para qualquer outra conta o item não aparece, e abrir `/admin` diretamente mostra uma página de acesso restrito (HTTP `403`). A regra está na URL, no `SecurityConfig`, e também no controller, com `@PreAuthorize("hasRole('ADMIN')")`.
+
+| Tela | O que mostra |
+|---|---|
+| `/admin`: painel do sistema | Total de contas, ativas, desativadas, administradores e novas em 30 dias; totais de ativos, corretoras e negociações; últimas atividades administrativas; situação da brapi e da Alpha Vantage; atalhos para o Swagger e o console H2 |
+| `/admin/usuarios`: contas da plataforma | Criar conta com papel, promover ou rebaixar, desativar ou reativar e redefinir senha |
+
+Regras:
+
+- **Privacidade:** a área mostra apenas totais. Ativos, valores e operações de cada conta não aparecem, e o isolamento das carteiras continua valendo para o administrador.
+- **Chaves das integrações:** o painel informa apenas se a chave está configurada, nunca o valor.
+- **Própria conta:** o administrador não pode alterar o próprio papel nem desativar a própria conta.
+- **Último administrador:** o sistema recusa rebaixar ou desativar o último administrador ativo, inclusive pela API `/api/usuarios`.
+- **Registro:** criação de conta, alteração de cadastro ou de papel, desativação, reativação e redefinição de senha ficam gravadas em `atividades_admin`, com responsável, conta e data. Senhas, hashes e tokens nunca entram no registro.
+- **Desativação:** a conta desativada não consegue entrar de novo. Sessões abertas e tokens já emitidos continuam válidos até expirar.
 
 ## Endpoints da API
 
@@ -177,7 +197,7 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/negociacoes -Heade
 
 O preço unitário é informado pelo usuário e pode partir da cotação atual sugerida pela tela. A taxa não é enviada: o backend registra taxa zero para novas operações.
 
-Swagger (`/swagger-ui.html`) e os documentos OpenAPI continuam disponíveis para avaliação técnica, mas exigem estar logado no portal com uma conta `ADMIN` e não aparecem no menu da aplicação. Para testar endpoints pelo Swagger, use o botão **Authorize** com o token obtido no login.
+Swagger (`/swagger-ui.html`) e os documentos OpenAPI continuam disponíveis para avaliação técnica, mas exigem estar logado no portal com uma conta `ADMIN`. O acesso fica na área de administração, fora do menu do usuário comum. Para testar endpoints pelo Swagger, use o botão **Authorize** com o token obtido no login.
 
 A coleção pronta está em `postman/Carteira-Acao.postman_collection.json`. Execute primeiro **Autenticação > Login**: o script pós-resposta salva o token na variável `{{token}}`, usada automaticamente como Bearer Token pelas demais requisições.
 
@@ -207,7 +227,8 @@ src/main/resources/db/changelog/
 └── changes/
     ├── 001-criar-estrutura-inicial.xml
     ├── 002-criar-negociacoes.xml
-    └── 003-isolar-carteiras-por-usuario.xml
+    ├── 003-isolar-carteiras-por-usuario.xml
+    └── 004-criar-atividades-admin.xml
 ```
 
 O Hibernate usa `ddl-auto: validate`: ele confere as entidades, mas não altera tabelas. O mesmo changelog é executado no H2 dos testes e no PostgreSQL. Para preservar o H2 local criado antes desta mudança, cada tabela já existente recebe uma linha de base; qualquer tabela ausente é criada pelo changelog e, em seguida, o Hibernate valida o conjunto completo.
@@ -338,7 +359,7 @@ O `mvn clean verify` gera `target/site/jacoco/index.html` (também `jacoco.xml` 
 |---|---:|---:|---:|
 | Antes das aulas 13–15 | 32 | 54,9% | 32,0% |
 | Após implementar as aulas 13 e 14 | 84 | 65,5% | 40,7% |
-| Atual | 248 | 99,5% | 96,0% |
+| Atual | 290 | 99,5% | 95,6% |
 | Portão versionado no `pom.xml` (meta da aula) | — | 80% | 80% |
 
 Não é permitido manter a meta reduzindo limites, criando exclusões arbitrárias ou escrevendo testes sem asserções: o `pom.xml` não possui nenhuma exclusão de cobertura.

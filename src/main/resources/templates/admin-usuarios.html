@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Contas · Administração · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('admin')}"></div>
+<main class="app-main portal-main">
+    <header class="topbar portal-topbar">
+        <div><p class="eyebrow">ADMINISTRAÇÃO</p><h1>Contas da plataforma</h1><p class="muted">Crie contas, defina papéis e controle quem pode entrar.</p></div>
+        <a class="button secondary" th:href="@{/admin}">← Painel do sistema</a>
+    </header>
+    <div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
+    <div class="alert error" th:if="${erro}" th:text="${erro}"></div>
+
+    <section class="management-grid">
+        <article class="panel form-panel">
+            <div class="panel-heading"><div><p class="eyebrow">NOVA CONTA</p><h2>Criar conta</h2></div></div>
+            <p class="panel-description">A pessoa entra com este e-mail e esta senha. A carteira começa vazia.</p>
+            <form class="stack-form" th:action="@{/admin/usuarios}" th:object="${usuarioForm}" method="post">
+                <div class="alert error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+                <label for="nome">Nome</label>
+                <input id="nome" th:field="*{nome}" type="text" maxlength="100" autocomplete="off" required>
+                <small class="field-error" th:errors="*{nome}"></small>
+                <label for="email">E-mail</label>
+                <input id="email" th:field="*{email}" type="email" maxlength="160" autocomplete="off" required>
+                <small class="field-error" th:errors="*{email}"></small>
+                <label for="senha">Senha inicial</label>
+                <input id="senha" th:field="*{senha}" type="password" maxlength="72" autocomplete="new-password" required>
+                <small class="field-error" th:errors="*{senha}"></small>
+                <small class="form-hint">Use ao menos 8 caracteres, com maiúscula, minúscula e número.</small>
+                <label for="papel">Papel</label>
+                <select id="papel" th:field="*{papel}" required>
+                    <option th:each="p : ${papeis}" th:value="${p}" th:text="${p.descricao}">Investidor</option>
+                </select>
+                <small class="field-error" th:errors="*{papel}"></small>
+                <button class="button primary wide" type="submit">Criar conta</button>
+            </form>
+        </article>
+
+        <article class="panel table-panel management-table">
+            <div class="panel-heading">
+                <div><p class="eyebrow">CONTAS</p><h2>Contas cadastradas</h2><small class="heading-help">Desativar impede novos logins. Sessões abertas e tokens já emitidos continuam válidos até expirar.</small></div>
+                <span class="count-badge" th:text="${#lists.size(usuarios) + (#lists.size(usuarios) == 1 ? ' conta' : ' contas')}">0 contas</span>
+            </div>
+            <div class="table-scroll">
+                <table class="accounts-table"><thead><tr><th>Conta</th><th>Papel</th><th>Situação</th><th>Cadastro</th><th>Ações</th></tr></thead>
+                    <tbody>
+                    <tr th:each="u : ${usuarios}" th:with="propria=${#strings.equalsIgnoreCase(u.email, emailSessao)}">
+                        <td><strong th:text="${u.nome}">Nome</strong><small class="table-sub" th:text="${u.email}">conta@carteira.com</small></td>
+                        <td><span class="account-badge" th:classappend="${u.papel.name() == 'ADMIN'} ? ' is-admin' : ''" th:text="${u.papel.descricao}">Investidor</span></td>
+                        <td><span class="account-badge" th:classappend="${u.ativo} ? ' is-active' : ' is-inactive'" th:text="${u.ativo} ? 'Ativa' : 'Desativada'">Ativa</span></td>
+                        <td th:text="${#temporals.format(u.dataCadastro, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td>
+                            <div class="account-actions">
+                                <span class="account-self" th:if="${propria}">Sua conta</span>
+                                <th:block th:unless="${propria}">
+                                    <form th:action="@{/admin/usuarios/{id}/papel(id=${u.id})}" method="post">
+                                        <input type="hidden" name="papel" th:value="${u.papel.name() == 'ADMIN'} ? 'USER' : 'ADMIN'">
+                                        <button class="account-action" type="submit" th:text="${u.papel.name() == 'ADMIN'} ? 'Tornar investidor' : 'Tornar administrador'">Tornar administrador</button>
+                                    </form>
+                                    <form th:action="@{/admin/usuarios/{id}/situacao(id=${u.id})}" method="post">
+                                        <input type="hidden" name="ativo" th:value="${!u.ativo}">
+                                        <button class="account-action" th:classappend="${u.ativo} ? ' is-danger' : ''" type="submit" th:text="${u.ativo} ? 'Desativar' : 'Reativar'">Desativar</button>
+                                    </form>
+                                </th:block>
+                                <details class="account-password">
+                                    <summary class="account-action">Redefinir senha</summary>
+                                    <form th:action="@{/admin/usuarios/{id}/senha(id=${u.id})}" method="post">
+                                        <label th:for="${'senha-' + u.id}">Nova senha</label>
+                                        <input th:id="${'senha-' + u.id}" name="senha" type="password" maxlength="72" autocomplete="new-password" required>
+                                        <button class="account-action" type="submit">Salvar senha</button>
+                                    </form>
+                                </details>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</main>
+</body>
+</html>

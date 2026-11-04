@@ -11,6 +11,7 @@ import br.com.carteira.dto.UsuarioCreateRequest;
 import br.com.carteira.dto.UsuarioUpdateRequest;
 import br.com.carteira.exception.RecursoNaoEncontradoException;
 import br.com.carteira.exception.RegraNegocioException;
+import br.com.carteira.model.AcaoAdmin;
 import br.com.carteira.model.Papel;
 import br.com.carteira.model.Usuario;
 import br.com.carteira.repository.UsuarioRepository;
@@ -27,13 +28,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 class UsuarioServiceTest {
     private UsuarioRepository repository;
     private PasswordEncoder passwordEncoder;
+    private AtividadeAdminService atividades;
     private UsuarioService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(UsuarioRepository.class);
         passwordEncoder = mock(PasswordEncoder.class);
-        service = new UsuarioService(repository, passwordEncoder);
+        atividades = mock(AtividadeAdminService.class);
+        service = new UsuarioService(repository, passwordEncoder, atividades);
         when(repository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.encode(any())).thenAnswer(invocation -> "hash-de-" + invocation.getArgument(0));
     }
@@ -133,6 +136,121 @@ class UsuarioServiceTest {
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("confirmação");
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void criacaoERedefinicaoDeSenhaFicamRegistradasSemASenha() {
+        when(repository.findByEmailIgnoreCase("ana@carteira.com")).thenReturn(Optional.empty());
+        service.criar(new UsuarioCreateRequest("Ana", "ana@carteira.com", "SenhaForte123", Papel.ADMIN));
+        verify(atividades).registrar(AcaoAdmin.CRIOU_CONTA, "ana@carteira.com", "Papel: Administrador");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(usuario(1L, "ana@carteira.com")));
+        service.alterarSenha(1L, new AlterarSenhaRequest("NovaSenha456"));
+        verify(atividades).registrar(AcaoAdmin.REDEFINIU_SENHA, "ana@carteira.com", null);
+    }
+
+    @Test
+    void definirPapelPromoveERegistraAMudanca() {
+        Usuario ana = usuario(1L, "ana@carteira.com");
+        when(repository.findById(1L)).thenReturn(Optional.of(ana));
+
+        service.definirPapel(1L, Papel.ADMIN, "admin@carteira.com");
+
+        assertThat(ana.getPapel()).isEqualTo(Papel.ADMIN);
+        verify(atividades).registrar(AcaoAdmin.ALTEROU_PAPEL, "ana@carteira.com", "Investidor para Administrador");
+    }
+
+    @Test
+    void definirOMesmoPapelNaoGravaNemRegistra() {
+        when(repository.findById(1L)).thenReturn(Optional.of(usuario(1L, "ana@carteira.com")));
+
+        service.definirPapel(1L, Papel.USER, "admin@carteira.com");
+
+        verify(repository, never()).save(any());
+        verifyNoInteractions(atividades);
+    }
+
+    @Test
+    void administradorNaoAlteraOProprioPapelNemSeDesativa() {
+        Usuario admin = usuario(1L, "admin@carteira.com");
+        admin.setPapel(Papel.ADMIN);
+        when(repository.findById(1L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> service.definirPapel(1L, Papel.USER, "ADMIN@carteira.com"))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Você não pode alterar o papel da sua própria conta.");
+        assertThatThrownBy(() -> service.definirSituacao(1L, false, "admin@carteira.com"))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Você não pode desativar a sua própria conta.");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void ultimoAdministradorAtivoNaoPodeSerRebaixadoNemDesativado() {
+        Usuario admin = usuario(1L, "admin@carteira.com");
+        admin.setPapel(Papel.ADMIN);
+        when(repository.findById(1L)).thenReturn(Optional.of(admin));
+        when(repository.countByPapelAndAtivoTrue(Papel.ADMIN)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.definirPapel(1L, Papel.USER, "outro@carteira.com"))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("O sistema precisa manter pelo menos um administrador ativo.");
+        assertThatThrownBy(() -> service.definirSituacao(1L, false, "outro@carteira.com"))
+                .isInstanceOf(RegraNegocioException.class);
+        assertThatThrownBy(() -> service.atualizar(1L,
+                new UsuarioUpdateRequest("Admin", "admin@carteira.com", Papel.ADMIN, false)))
+                .isInstanceOf(RegraNegocioException.class);
+        assertThat(admin.getPapel()).isEqualTo(Papel.ADMIN);
+        assertThat(admin.isAtivo()).isTrue();
+    }
+
+    @Test
+    void comDoisAdministradoresAtivosUmPodeSerRebaixado() {
+        Usuario admin = usuario(1L, "admin@carteira.com");
+        admin.setPapel(Papel.ADMIN);
+        when(repository.findById(1L)).thenReturn(Optional.of(admin));
+        when(repository.countByPapelAndAtivoTrue(Papel.ADMIN)).thenReturn(2L);
+
+        service.definirPapel(1L, Papel.USER, "outro@carteira.com");
+
+        assertThat(admin.getPapel()).isEqualTo(Papel.USER);
+    }
+
+    @Test
+    void administradorDesativadoPodeSerRebaixadoMesmoSendoOUltimo() {
+        Usuario admin = usuario(1L, "admin@carteira.com");
+        admin.setPapel(Papel.ADMIN);
+        admin.setAtivo(false);
+        when(repository.findById(1L)).thenReturn(Optional.of(admin));
+        when(repository.countByPapelAndAtivoTrue(Papel.ADMIN)).thenReturn(1L);
+
+        service.definirPapel(1L, Papel.USER, "outro@carteira.com");
+
+        assertThat(admin.getPapel()).isEqualTo(Papel.USER);
+    }
+
+    @Test
+    void desativarEReativarRegistramAcoesDiferentes() {
+        Usuario ana = usuario(1L, "ana@carteira.com");
+        when(repository.findById(1L)).thenReturn(Optional.of(ana));
+
+        service.definirSituacao(1L, false, "admin@carteira.com");
+        assertThat(ana.isAtivo()).isFalse();
+        service.definirSituacao(1L, true, "admin@carteira.com");
+        assertThat(ana.isAtivo()).isTrue();
+        service.definirSituacao(1L, true, "admin@carteira.com");
+
+        verify(atividades).registrar(AcaoAdmin.DESATIVOU_CONTA, "ana@carteira.com", null);
+        verify(atividades).registrar(AcaoAdmin.REATIVOU_CONTA, "ana@carteira.com", null);
+        verify(repository, times(2)).save(ana);
+    }
+
+    @Test
+    void listagemCompletaVemOrdenadaPorNome() {
+        Usuario ana = usuario(1L, "ana@carteira.com");
+        when(repository.findAllByOrderByNomeAscEmailAsc()).thenReturn(java.util.List.of(ana));
+
+        assertThat(service.listarTodos()).containsExactly(ana);
     }
 
     private static Usuario usuario(Long id, String email) {

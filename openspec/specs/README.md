@@ -21,6 +21,7 @@ capacidade/
 Capacidades documentadas:
 
 - `acoes`
+- `administracao`
 - `api-openapi`
 - `autenticacao`
 - `corretoras`

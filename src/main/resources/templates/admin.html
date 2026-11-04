@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Administração · Carteira</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-body">
+<div th:replace="~{fragments/sidebar :: sidebar('admin')}"></div>
+<main class="app-main portal-main">
+    <header class="topbar portal-topbar">
+        <div><p class="eyebrow">ADMINISTRAÇÃO</p><h1>Painel do sistema</h1><p class="muted">Acompanhe as contas, as alterações feitas nelas e as integrações da plataforma.</p></div>
+        <a class="button primary" th:href="@{/admin/usuarios}">Gerenciar contas</a>
+    </header>
+
+    <section class="portal-summary-grid" aria-label="Totais do sistema">
+        <article class="summary-card"><span class="summary-icon">◉</span><small>Contas</small><strong th:text="${painel.totalContas}">0</strong><em th:text="${painel.contasNovas30Dias + ' novas em 30 dias'}">0 novas em 30 dias</em></article>
+        <article class="summary-card"><span class="summary-icon">◈</span><small>Contas ativas</small><strong th:text="${painel.contasAtivas}">0</strong><em th:text="${painel.contasDesativadas + ' desativadas · ' + painel.administradores + ' administradores'}">0 desativadas</em></article>
+        <article class="summary-card"><span class="summary-icon">◇</span><small>Ativos cadastrados</small><strong th:text="${painel.totalAtivos}">0</strong><em th:text="${painel.totalCorretoras + ' corretoras'}">0 corretoras</em></article>
+        <article class="summary-card"><span class="summary-icon">⇄</span><small>Negociações</small><strong th:text="${painel.totalNegociacoes}">0</strong><em>em todas as carteiras</em></article>
+    </section>
+
+    <section class="settings-layout">
+        <article class="panel table-panel">
+            <div class="panel-heading">
+                <div><p class="eyebrow">REGISTRO</p><h2>Atividades administrativas</h2><small class="heading-help">Quem criou contas, alterou papéis, desativou acessos ou redefiniu senhas.</small></div>
+                <span class="count-badge" th:text="${'Últimas ' + #lists.size(atividades)}">Últimas 0</span>
+            </div>
+            <div class="table-scroll">
+                <table><thead><tr><th>Data</th><th>Responsável</th><th>Ação</th><th>Conta</th></tr></thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(atividades)}"><td colspan="4" class="table-empty">Nenhuma alteração registrada. As mudanças nas contas aparecerão aqui.</td></tr>
+                    <tr th:each="a : ${atividades}">
+                        <td><strong th:text="${#temporals.format(a.dataHora, 'dd/MM/yyyy')}">01/01/2026</strong><small class="table-sub" th:text="${#temporals.format(a.dataHora, 'HH:mm')}">10:00</small></td>
+                        <td th:text="${a.responsavel}">admin@carteira.com</td>
+                        <td><strong th:text="${a.acao.descricao}">Criou a conta</strong><small class="table-sub" th:if="${a.detalhe != null}" th:text="${a.detalhe}">Detalhe</small></td>
+                        <td th:text="${a.conta}">conta@carteira.com</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <aside class="settings-stack">
+            <article class="panel settings-panel">
+                <div class="panel-heading"><div><p class="eyebrow">INTEGRAÇÕES</p><h2>Situação dos provedores</h2></div></div>
+                <dl class="system-list">
+                    <div><dt>brapi</dt><dd th:classappend="${painel.brapiComToken} ? ' is-ready' : ' is-limited'" th:text="${painel.brapiComToken} ? 'Token configurado' : 'Sem token: cobertura limitada'">Sem token</dd></div>
+                    <div><dt>Alpha Vantage</dt><dd th:classappend="${painel.alphaVantageComChavePropria} ? ' is-ready' : ' is-limited'" th:text="${painel.alphaVantageComChavePropria} ? 'Chave própria configurada' : 'Chave demo: só o ticker IBM'">Chave demo</dd></div>
+                    <div><dt>Última cotação</dt><dd th:text="${painel.ultimaCotacao != null} ? ${#temporals.format(painel.ultimaCotacao, 'dd/MM/yyyy HH:mm')} : 'Nenhuma ainda'">Nenhuma ainda</dd></div>
+                </dl>
+            </article>
+            <article class="panel settings-panel">
+                <div class="panel-heading"><div><p class="eyebrow">FERRAMENTAS</p><h2>Acesso técnico</h2></div></div>
+                <div class="tool-links">
+                    <a class="button secondary" th:href="@{/swagger-ui.html}">Documentação da API</a>
+                    <a class="button secondary" th:if="${painel.consoleH2Ativo}" th:href="@{/h2-console}">Console do banco H2</a>
+                </div>
+            </article>
+            <article class="panel security-panel">
+                <div class="security-icon">◈</div>
+                <div><p class="eyebrow">PRIVACIDADE</p><h2>Carteiras continuam privadas</h2><p>Esta área mostra apenas totais do sistema. Ativos, valores e operações de cada conta não aparecem aqui.</p></div>
+            </article>
+        </aside>
+    </section>
+</main>
+</body>
+</html>

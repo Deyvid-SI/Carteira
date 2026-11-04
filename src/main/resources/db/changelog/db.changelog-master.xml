@@ -11,5 +11,7 @@
              relativeToChangelogFile="true"/>
     <include file="changes/003-isolar-carteiras-por-usuario.xml"
              relativeToChangelogFile="true"/>
+    <include file="changes/004-criar-atividades-admin.xml"
+             relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
