@@ -1,17 +1,21 @@
 package br.com.carteira.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import br.com.carteira.model.Usuario;
 import br.com.carteira.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,6 +41,36 @@ class SecurityFlowTest {
             usuario.setSenha("senha-nao-utilizada-no-mockmvc");
             usuarioRepository.save(usuario);
         }
+    }
+
+    @Test
+    @DisplayName("Aula 13: o login é a única rota pública do portal")
+    void loginDeveSerAUnicaRotaPublica() throws Exception {
+        mvc.perform(get("/login")).andExpect(status().isOk());
+        for (String rota : new String[] {"/", "/cadastro", "/dashboard", "/gestao/acoes", "/historico", "/admin"}) {
+            mvc.perform(get(rota))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrlPattern("**/login"));
+        }
+    }
+
+    @Test
+    @DisplayName("Aula 14: somente ADMIN cadastra contas, então não existe cadastro público")
+    void naoDeveExistirCadastroPublicoDeContas() throws Exception {
+        mvc.perform(post("/cadastro").with(csrf())
+                        .param("nome", "Pessoa Anônima").param("email", "anonimo-publico@carteira.test")
+                        .param("senha", "SenhaForte123").param("confirmarSenha", "SenhaForte123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+
+        assertThat(usuarioRepository.existsByEmailIgnoreCase("anonimo-publico@carteira.test")).isFalse();
+        mvc.perform(get("/login")).andExpect(content().string(not(containsString("/cadastro"))));
+    }
+
+    @Test
+    void paginaInicialDeveLevarContaAutenticadaAoDashboard() throws Exception {
+        mvc.perform(get("/").with(user("teste@carteira.com").roles("USER")))
+                .andExpect(redirectedUrl("/dashboard"));
     }
 
     @Test

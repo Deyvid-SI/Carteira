@@ -6,7 +6,7 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 
 ## Funcionalidades
 
-- Cadastro e login com Spring Security, BCrypt, validação de e-mail e política de senha.
+- Login com Spring Security, BCrypt, validação de e-mail e política de senha; contas criadas somente pelo administrador.
 - API REST em `/api/**` protegida por JWT (HS256) stateless, com login em `POST /api/auth/login`; o portal web continua usando sessão e CSRF.
 - Controle de acesso por papéis (`USER` e `ADMIN`) com `@EnableMethodSecurity` e `@PreAuthorize`; somente `ADMIN` gerencia usuários.
 - Área de administração no portal (`/admin`), visível só para `ADMIN`: totais do sistema, gestão de contas, registro de atividades e situação das integrações, sem acesso às carteiras de outras pessoas.
@@ -52,7 +52,7 @@ mvn spring-boot:run
 
 Acesse [http://localhost:8080](http://localhost:8080). O banco H2 é criado em `./data` e o Liquibase controla sua estrutura.
 
-Na primeira execução, crie a conta pela opção **Criar conta** na tela de login. Um usuário inicial pode ser habilitado somente por variáveis de ambiente:
+O login é a única tela pública: não existe cadastro aberto, e somente um administrador cria contas (Aula 14). Na primeira execução, habilite o administrador inicial pelas variáveis de ambiente e, com ele, crie as demais contas em **Administração > Gerenciar contas**:
 
 ```powershell
 $env:DEMO_USER_ENABLED="true"

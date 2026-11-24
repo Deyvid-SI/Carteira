@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import br.com.carteira.dto.AlterarSenhaRequest;
-import br.com.carteira.dto.CadastroUsuarioRequest;
 import br.com.carteira.dto.UsuarioCreateRequest;
 import br.com.carteira.dto.UsuarioUpdateRequest;
 import br.com.carteira.exception.RecursoNaoEncontradoException;
@@ -109,33 +108,6 @@ class UsuarioServiceTest {
 
         assertThat(existente.getSenha()).isEqualTo("hash-de-NovaSenha456").isNotEqualTo("NovaSenha456");
         verify(repository).save(existente);
-    }
-
-    @Test
-    void cadastroWebCriaContaComPapelUser() {
-        when(repository.existsByEmailIgnoreCase("bia@carteira.com")).thenReturn(false);
-
-        service.cadastrar(cadastro("Bia@Carteira.com", "SenhaForte123", "SenhaForte123"));
-
-        verify(repository).save(argThat(u -> u.getEmail().equals("bia@carteira.com")
-                && u.getPapel() == Papel.USER && u.getSenha().equals("hash-de-SenhaForte123")));
-    }
-
-    @Test
-    void cadastroWebRecusaEmailDuplicado() {
-        when(repository.existsByEmailIgnoreCase("bia@carteira.com")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.cadastrar(cadastro("bia@carteira.com", "SenhaForte123", "SenhaForte123")))
-                .isInstanceOf(RegraNegocioException.class)
-                .hasMessage("Já existe uma conta com este e-mail.");
-    }
-
-    @Test
-    void cadastroWebRecusaConfirmacaoDiferente() {
-        assertThatThrownBy(() -> service.cadastrar(cadastro("bia@carteira.com", "SenhaForte123", "SenhaForte124")))
-                .isInstanceOf(RegraNegocioException.class)
-                .hasMessageContaining("confirmação");
-        verify(repository, never()).save(any());
     }
 
     @Test
@@ -259,14 +231,5 @@ class UsuarioServiceTest {
         usuario.setNome("Conta");
         usuario.setEmail(email);
         return usuario;
-    }
-
-    private static CadastroUsuarioRequest cadastro(String email, String senha, String confirmacao) {
-        CadastroUsuarioRequest request = new CadastroUsuarioRequest();
-        request.setNome("Bia");
-        request.setEmail(email);
-        request.setSenha(senha);
-        request.setConfirmarSenha(confirmacao);
-        return request;
     }
 }

@@ -29,8 +29,10 @@ Invalida sessão, remove cookie `JSESSIONID` e retorna ao login.
 
 | Recurso | Visitante | USER | ADMIN |
 |---|---:|---:|---:|
-| Login/cadastro/assets estáticos | sim | sim | sim |
-| Dashboard e gestão | não | sim | sim |
+| Login e assets estáticos | sim | sim | sim |
+| Consultar dashboard, carteira, histórico e IR | não | sim | sim |
+| Cadastrar ou alterar ações, corretoras e negociações | não | não | sim |
+| Criar e administrar contas | não | não | sim |
 | Swagger/OpenAPI/H2 Console | não | não | sim |
 
 ## Segurança

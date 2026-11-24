@@ -1,7 +1,6 @@
 package br.com.carteira.service;
 
 import br.com.carteira.dto.AlterarSenhaRequest;
-import br.com.carteira.dto.CadastroUsuarioRequest;
 import br.com.carteira.dto.UsuarioCreateRequest;
 import br.com.carteira.dto.UsuarioUpdateRequest;
 import br.com.carteira.exception.RecursoNaoEncontradoException;
@@ -31,22 +30,6 @@ public class UsuarioService {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.atividades = atividades;
-    }
-
-    @Transactional
-    public void cadastrar(CadastroUsuarioRequest request) {
-        String email = normalizarEmail(request.getEmail());
-        if (repository.existsByEmailIgnoreCase(email)) {
-            throw new RegraNegocioException(EMAIL_DUPLICADO);
-        }
-        if (!request.getSenha().equals(request.getConfirmarSenha())) {
-            throw new RegraNegocioException("A confirmação da senha não confere.");
-        }
-        Usuario usuario = new Usuario();
-        usuario.setNome(request.getNome().trim());
-        usuario.setEmail(email);
-        usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        repository.save(usuario);
     }
 
     @Transactional(readOnly = true)

@@ -6,22 +6,28 @@ Proteger dados e operações da carteira por uma sessão de usuário validada no
 
 ## Requirements
 
-### Requirement: Cadastro validado
+### Requirement: Login como única rota pública
 
-O sistema SHALL permitir cadastro com nome, e-mail único e senha de 8 a 72 caracteres contendo letra maiúscula, minúscula e número.
+O sistema SHALL manter o login como única rota pública. Não existe cadastro aberto: somente `ADMIN` cria contas, com nome, e-mail único e senha de 8 a 72 caracteres contendo letra maiúscula, minúscula e número.
 
-#### Scenario: Cadastro válido
+#### Scenario: Visitante tenta abrir qualquer outra tela
 
-- GIVEN um e-mail ainda não utilizado
-- WHEN o usuário informa dados válidos e duas senhas iguais
-- THEN a senha é armazenada como hash BCrypt
-- AND o usuário pode autenticar-se
+- GIVEN um visitante sem sessão
+- WHEN ele solicita `/`, `/cadastro`, `/dashboard`, `/gestao/acoes`, `/historico` ou `/admin`
+- THEN é direcionado ao login
+
+#### Scenario: Tentativa de cadastro público
+
+- GIVEN um visitante sem sessão
+- WHEN ele envia um formulário para `/cadastro`
+- THEN é direcionado ao login
+- AND nenhuma conta é criada
 
 #### Scenario: E-mail duplicado
 
 - GIVEN um e-mail já cadastrado
-- WHEN um novo cadastro usa o mesmo e-mail sem diferenciar maiúsculas
-- THEN o sistema rejeita o cadastro com mensagem clara
+- WHEN o administrador cria outra conta com o mesmo e-mail sem diferenciar maiúsculas
+- THEN o sistema rejeita a criação com mensagem clara
 
 ### Requirement: Controle de acesso
 

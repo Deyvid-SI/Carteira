@@ -13,6 +13,8 @@ import br.com.carteira.model.Usuario;
 import br.com.carteira.repository.UsuarioRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -75,6 +77,18 @@ class UsuarioApiIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erros.senha").exists());
+    }
+
+    @ParameterizedTest(name = "senha com {0} caracteres responde {1}")
+    @CsvSource({"7, 400", "8, 201", "72, 201", "73, 400"})
+    @DisplayName("Aula 15: valores de fronteira da política de senha (7, 8, 72 e 73 caracteres)")
+    void deveRespeitarLimitesDeTamanhoDaSenha(int tamanho, int statusEsperado) throws Exception {
+        String senha = "Aa1" + "x".repeat(tamanho - 3);
+
+        mvc.perform(post("/api/usuarios").with(admin()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Limite da senha\",\"email\":\"limite%d@carteira.test\",\"senha\":\"%s\",\"papel\":\"USER\"}"
+                                .formatted(tamanho, senha)))
+                .andExpect(status().is(statusEsperado));
     }
 
     @Test
