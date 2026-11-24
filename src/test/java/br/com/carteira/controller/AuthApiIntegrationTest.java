@@ -166,6 +166,17 @@ class AuthApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("Aula 13, experimento 6: token vencido há 2 segundos já recebe 401, sem folga de relógio")
+    void deveRecusarTokenLogoDepoisDeExpirar() throws Exception {
+        Instant agora = Instant.now();
+        String recemExpirado = assinar(jwtProperties.issuer(), agora.minus(12, ChronoUnit.SECONDS),
+                agora.minus(2, ChronoUnit.SECONDS));
+
+        mvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + recemExpirado))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Token expirado recebe 401")
     void deveRecusarTokenExpirado() throws Exception {
         Instant agora = Instant.now();
