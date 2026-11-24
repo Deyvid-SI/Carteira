@@ -116,16 +116,16 @@ Variáveis de ambiente: `JWT_SECRET` (obrigatória, ≥ 32 bytes, diferente por 
 
 | Recurso ou operação | Público | `USER` | `ADMIN` |
 |---|:---:|:---:|:---:|
-| `POST /api/auth/login` | Sim | Sim | Sim |
+| Login (`/login` e `POST /api/auth/login`) | Sim | Sim | Sim |
 | `GET /api/auth/me` | Não | Sim | Sim |
-| Consultar e registrar ações, negociações, corretoras e dashboard **da própria carteira** | Não | Sim | Sim |
+| Consultar ações, negociações, corretoras, dashboard, histórico e IR **da própria carteira** | Não | Sim | Sim |
+| Cadastrar ou alterar ações, corretoras e negociações | Não | Não | Sim |
 | Consultar ou alterar a carteira de outra conta | Não | Não | Não |
-| Gerenciar usuários (`/api/usuarios`) | Não | Não | Sim |
-| Área de administração do portal (`/admin`) | Não | Não | Sim |
+| Criar e gerenciar contas (`/api/usuarios` e `/admin`) | Não | Não | Sim |
 | Swagger/OpenAPI e console H2 (pelo portal) | Não | Não | Sim |
 
-- **Autorização vertical** (papel): `@PreAuthorize("hasRole('ADMIN')")` na classe `UsuarioRestController`, perto da operação, para que a exigência acompanhe todos os métodos mesmo se a URL mudar. Swagger e H2 são restritos por URL porque não são controllers da aplicação.
-- **Autorização horizontal** (propriedade dos dados): cada ação e corretora pertence a uma conta (`usuario_id`), e os serviços consultam sempre pelo usuário autenticado (`UsuarioAtualService`). O token de uma conta recebe `404` ao pedir o ativo de outra. Por isso as operações da carteira não exigem `ADMIN`: o próprio investidor registra suas compras e vendas, mas só enxerga e altera os próprios dados.
+- **Autorização vertical** (papel), como na Aula 14: `USER` só consulta e `ADMIN` mantém os dados. Os métodos `POST` e `PUT` de `AcaoRestController`, `CorretoraRestController` e `NegociacaoRestController`, e os envios de formulário de `GestaoWebController`, recebem `@PreAuthorize("hasRole('ADMIN')")` perto da operação, para a exigência acompanhar o método mesmo se a URL mudar. Os `GET` ficam liberados pela regra `anyRequest().authenticated()`. `UsuarioRestController` e `AdminWebController` têm a anotação na classe, porque todos os seus métodos são administrativos. Swagger e H2 são restritos por URL porque não são controllers da aplicação. No portal, a conta `USER` não vê formulários nem botões de cadastro, e um envio direto recebe `403`.
+- **Autorização horizontal** (propriedade dos dados): cada ação e corretora pertence a uma conta (`usuario_id`), e os serviços consultam sempre pelo usuário autenticado (`UsuarioAtualService`). O token de uma conta recebe `404` ao pedir o ativo de outra. A regra vale também para o administrador: ele mantém a própria carteira, mas não enxerga nem altera a de outra pessoa.
 - Contas não são excluídas: a desativação (`ativo=false`) preserva o histórico e impede novos logins.
 
 ## Área de administração

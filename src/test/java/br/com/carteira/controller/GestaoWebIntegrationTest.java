@@ -2,6 +2,7 @@ package br.com.carteira.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -48,6 +49,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -88,18 +90,60 @@ class GestaoWebIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = EMAIL, roles = "USER")
+    @DisplayName("Aula 14: USER consulta as telas de gestão, mas não cadastra nem altera nada")
+    void userSomenteConsultaNoPortal() throws Exception {
+        Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
+
+        mvc.perform(get("/gestao/acoes"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("PETR4")))
+                .andExpect(content().string(containsString("Somente administradores")))
+                .andExpect(content().string(not(containsString("action=\"/gestao/acoes\""))))
+                .andExpect(content().string(not(containsString("/atualizar\""))));
+        mvc.perform(get("/gestao/corretoras"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("action=\"/gestao/corretoras\""))));
+        mvc.perform(get("/gestao/negociacoes"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("action=\"/gestao/negociacoes\""))));
+        mvc.perform(get("/dashboard")).andExpect(content().string(not(containsString("Comprar ou vender"))));
+        mvc.perform(get("/historico")).andExpect(content().string(not(containsString("Nova operação"))));
+
+        mvc.perform(post("/gestao/acoes").with(csrf()).param("ticker", "VALE3").param("mercado", "BRASIL"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", acao.getId()).with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/gestao/acoes/{id}/posicao", acao.getId()).with(csrf())
+                        .param("quantidade", "99").param("precoMedio", "1"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/gestao/corretoras").with(csrf())
+                        .param("cnpj", CNPJ).param("cep", "22440032").param("numero", "153"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/gestao/negociacoes").with(csrf())
+                        .param("acaoId", acao.getId().toString()).param("tipo", "COMPRA")
+                        .param("quantidade", "5").param("precoUnitario", "30")
+                        .param("dataNegociacao", "2025-06-15T10:00:00"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(gateway, brasilApi, viaCep);
+        assertThat(acao.getQuantidade()).isEqualByComparingTo("10");
+        assertThat(acao.getPrecoMedio()).isEqualByComparingTo("20");
+    }
+
+    @Test
     @DisplayName("Ação validada no provedor é cadastrada na carteira da conta")
     void deveCadastrarAcaoValidada() throws Exception {
         when(gateway.buscar("PETR4")).thenReturn(cotacao("38.50"));
 
-        mvc.perform(post("/gestao/acoes").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes").with(administrador()).with(csrf())
                         .param("ticker", "petr4").param("mercado", "BRASIL"))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("sucesso", "Ticker validado e cadastrado com sucesso."));
 
         Acao salva = acaoRepository.findByTickerIgnoreCaseAndUsuarioId("PETR4", conta.getId()).orElseThrow();
         assertThat(salva.getCotacaoAtual()).isEqualByComparingTo("38.50");
-        mvc.perform(get("/gestao/acoes").with(investidor()))
+        mvc.perform(get("/gestao/acoes").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("acoes"))
                 .andExpect(content().string(containsString("PETR4")));
@@ -108,7 +152,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Ticker fora do formato volta para a tela com erro no campo")
     void deveValidarFormularioDeAcao() throws Exception {
-        mvc.perform(post("/gestao/acoes").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes").with(administrador()).with(csrf())
                         .param("ticker", "pet r4!").param("mercado", "BRASIL"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("acoes"))
@@ -121,7 +165,7 @@ class GestaoWebIntegrationTest {
     void deveMostrarFalhaDoProvedorAoCadastrarAcao() throws Exception {
         when(gateway.buscar("XXXX3")).thenThrow(new ServicoExternoException("brapi", "Ticker brasileiro não encontrado: XXXX3"));
 
-        mvc.perform(post("/gestao/acoes").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes").with(administrador()).with(csrf())
                         .param("ticker", "XXXX3").param("mercado", "BRASIL"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("acoes"))
@@ -134,7 +178,7 @@ class GestaoWebIntegrationTest {
     void deveRecusarTickerRepetido() throws Exception {
         acaoRepository.save(acao("PETR4", "0", "0"));
 
-        mvc.perform(post("/gestao/acoes").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes").with(administrador()).with(csrf())
                         .param("ticker", "PETR4").param("mercado", "BRASIL"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Este ticker já está cadastrado na sua carteira.")));
@@ -143,7 +187,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("POST sem token CSRF é bloqueado no portal")
     void deveExigirCsrfNosFormularios() throws Exception {
-        mvc.perform(post("/gestao/acoes").with(investidor()).param("ticker", "PETR4").param("mercado", "BRASIL"))
+        mvc.perform(post("/gestao/acoes").with(administrador()).param("ticker", "PETR4").param("mercado", "BRASIL"))
                 .andExpect(status().isForbidden());
     }
 
@@ -153,7 +197,7 @@ class GestaoWebIntegrationTest {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
         when(gateway.buscar("PETR4")).thenReturn(cotacao("41.00"));
 
-        mvc.perform(post("/gestao/acoes/{id}/atualizar", acao.getId()).with(investidor()).with(csrf()))
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", acao.getId()).with(administrador()).with(csrf()))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("sucesso", "Cotação atualizada e adicionada ao histórico."));
 
@@ -168,7 +212,7 @@ class GestaoWebIntegrationTest {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
         when(gateway.buscar(anyString())).thenThrow(new ServicoExternoException("brapi", "Provedor indisponível"));
 
-        mvc.perform(post("/gestao/acoes/{id}/atualizar", acao.getId()).with(investidor()).with(csrf()))
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", acao.getId()).with(administrador()).with(csrf()))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", "Provedor indisponível"));
 
@@ -180,7 +224,7 @@ class GestaoWebIntegrationTest {
     void deveAtualizarPosicaoPelaTela() throws Exception {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
 
-        mvc.perform(post("/gestao/acoes/{id}/posicao", acao.getId()).with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes/{id}/posicao", acao.getId()).with(administrador()).with(csrf())
                         .param("quantidade", "15").param("precoMedio", "22.50"))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("sucesso", "Posição atualizada. Os gráficos foram recalculados."));
@@ -195,7 +239,7 @@ class GestaoWebIntegrationTest {
     void deveRecusarPosicaoInvalida(String quantidade, String precoMedio) throws Exception {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
 
-        mvc.perform(post("/gestao/acoes/{id}/posicao", acao.getId()).with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes/{id}/posicao", acao.getId()).with(administrador()).with(csrf())
                         .param("quantidade", quantidade).param("precoMedio", precoMedio))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", startsWith("A quantidade deve ser um número inteiro")));
@@ -207,7 +251,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Atualizar cotação de ativo inexistente avisa o usuário sem consultar o provedor")
     void deveAvisarAtivoInexistenteAoAtualizarCotacao() throws Exception {
-        mvc.perform(post("/gestao/acoes/{id}/atualizar", 999_999).with(investidor()).with(csrf()))
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", 999_999).with(administrador()).with(csrf()))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
 
@@ -217,7 +261,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Atualizar posição de ativo inexistente avisa o usuário")
     void deveAvisarAtivoInexistenteAoAtualizarPosicao() throws Exception {
-        mvc.perform(post("/gestao/acoes/{id}/posicao", 999_999).with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes/{id}/posicao", 999_999).with(administrador()).with(csrf())
                         .param("quantidade", "15").param("precoMedio", "22.50"))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
@@ -234,11 +278,11 @@ class GestaoWebIntegrationTest {
         alheia.setUsuario(usuarioRepository.save(outra));
         acaoRepository.save(alheia);
 
-        mvc.perform(post("/gestao/acoes/{id}/posicao", alheia.getId()).with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/acoes/{id}/posicao", alheia.getId()).with(administrador()).with(csrf())
                         .param("quantidade", "99").param("precoMedio", "1"))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
-        mvc.perform(post("/gestao/acoes/{id}/atualizar", alheia.getId()).with(investidor()).with(csrf()))
+        mvc.perform(post("/gestao/acoes/{id}/atualizar", alheia.getId()).with(administrador()).with(csrf()))
                 .andExpect(redirectedUrl("/gestao/acoes"))
                 .andExpect(flash().attribute("erro", "Ação não encontrada na sua carteira."));
 
@@ -253,7 +297,7 @@ class GestaoWebIntegrationTest {
         stubCorretoraRegistrada(true);
         when(viaCep.buscarPorCep("22440032")).thenReturn(endereco());
 
-        mvc.perform(post("/gestao/corretoras").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/corretoras").with(administrador()).with(csrf())
                         .param("cnpj", "02.332.886/0001-04").param("cep", "22440-032").param("numero", "153"))
                 .andExpect(redirectedUrl("/gestao/corretoras"))
                 .andExpect(flash().attribute("sucesso", "Corretora validada e cadastrada com sucesso."));
@@ -261,7 +305,7 @@ class GestaoWebIntegrationTest {
         Corretora salva = corretoraRepository.findByCnpjAndUsuarioId(CNPJ, conta.getId()).orElseThrow();
         assertThat(salva.getRazaoSocial()).isEqualTo("XP CORRETORA");
         assertThat(salva.getCidade()).isEqualTo("Rio de Janeiro");
-        mvc.perform(get("/gestao/corretoras").with(investidor()))
+        mvc.perform(get("/gestao/corretoras").with(administrador()))
                 .andExpect(view().name("corretoras"))
                 .andExpect(content().string(containsString("XP CORRETORA")));
     }
@@ -269,7 +313,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Formulário de corretora inválido volta com erro nos campos")
     void deveValidarFormularioDeCorretora() throws Exception {
-        mvc.perform(post("/gestao/corretoras").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/corretoras").with(administrador()).with(csrf())
                         .param("cnpj", "123").param("cep", "abc").param("numero", "sn"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("corretoras"))
@@ -281,7 +325,7 @@ class GestaoWebIntegrationTest {
     void deveRecusarInstituicaoSemRegistroNaCvm() throws Exception {
         stubCorretoraRegistrada(false);
 
-        mvc.perform(post("/gestao/corretoras").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/corretoras").with(administrador()).with(csrf())
                         .param("cnpj", CNPJ).param("cep", "22440032").param("numero", "153"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("corretoras"))
@@ -295,7 +339,7 @@ class GestaoWebIntegrationTest {
         stubCorretoraRegistrada(true);
         when(viaCep.buscarPorCep("22440032")).thenThrow(new ServicoExternoException("ViaCEP", "Não foi possível consultar o CEP agora."));
 
-        mvc.perform(post("/gestao/corretoras").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/corretoras").with(administrador()).with(csrf())
                         .param("cnpj", CNPJ).param("cep", "22440032").param("numero", "153"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Não foi possível consultar o CEP agora.")));
@@ -306,7 +350,7 @@ class GestaoWebIntegrationTest {
     void devePreSelecionarAtivoNaTelaDeNegociacao() throws Exception {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
 
-        var resultado = mvc.perform(get("/gestao/negociacoes").param("acaoId", acao.getId().toString()).with(investidor()))
+        var resultado = mvc.perform(get("/gestao/negociacoes").param("acaoId", acao.getId().toString()).with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("negociacoes"))
                 .andReturn();
@@ -332,7 +376,7 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Formulário de negociação incompleto volta com erro nos campos")
     void deveValidarFormularioDeNegociacao() throws Exception {
-        mvc.perform(post("/gestao/negociacoes").with(investidor()).with(csrf()).param("quantidade", "0"))
+        mvc.perform(post("/gestao/negociacoes").with(administrador()).with(csrf()).param("quantidade", "0"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("negociacoes"))
                 .andExpect(model().attributeHasFieldErrors("negociacaoForm", "acaoId", "tipo", "quantidade", "precoUnitario"));
@@ -363,16 +407,16 @@ class GestaoWebIntegrationTest {
     @DisplayName("Imposto de Renda usa o ano pedido quando há operações nele")
     void deveFiltrarImpostoDeRendaPeloAnoPedido() throws Exception {
         Acao acao = acaoRepository.save(acao("PETR4", "10", "20"));
-        mvc.perform(post("/gestao/negociacoes").with(investidor()).with(csrf())
+        mvc.perform(post("/gestao/negociacoes").with(administrador()).with(csrf())
                         .param("acaoId", acao.getId().toString()).param("tipo", "COMPRA")
                         .param("quantidade", "1").param("precoUnitario", "30")
                         .param("dataNegociacao", "2025-06-15T10:00:00"))
                 .andExpect(redirectedUrl("/gestao/negociacoes"));
 
-        mvc.perform(get("/imposto-renda").param("ano", "2025").with(investidor()))
+        mvc.perform(get("/imposto-renda").param("ano", "2025").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("anoSelecionado", 2025));
-        mvc.perform(get("/imposto-renda").param("ano", "1999").with(investidor()))
+        mvc.perform(get("/imposto-renda").param("ano", "1999").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("anoSelecionado", 2025));
     }
@@ -380,14 +424,14 @@ class GestaoWebIntegrationTest {
     @Test
     @DisplayName("Sem operações, Imposto de Renda mantém o ano pedido ou usa o ano atual")
     void deveEscolherAnoSemOperacoes() throws Exception {
-        mvc.perform(get("/imposto-renda").param("ano", "2020").with(investidor()))
+        mvc.perform(get("/imposto-renda").param("ano", "2020").with(administrador()))
                 .andExpect(model().attribute("anoSelecionado", 2020));
-        mvc.perform(get("/imposto-renda").with(investidor()))
+        mvc.perform(get("/imposto-renda").with(administrador()))
                 .andExpect(model().attribute("anoSelecionado", LocalDateTime.now().getYear()));
     }
 
     private RequestBuilder negociacao(Long acaoId, String tipo, String quantidade, String preco) {
-        return post("/gestao/negociacoes").with(investidor()).with(csrf())
+        return post("/gestao/negociacoes").with(administrador()).with(csrf())
                 .param("acaoId", String.valueOf(acaoId)).param("tipo", tipo)
                 .param("quantidade", quantidade).param("precoUnitario", preco)
                 .param("dataNegociacao", LocalDateTime.now().minusHours(1).withNano(0).toString());
@@ -423,7 +467,7 @@ class GestaoWebIntegrationTest {
         return acao;
     }
 
-    private static UserRequestPostProcessor investidor() {
-        return user(EMAIL).roles("USER");
+    private static UserRequestPostProcessor administrador() {
+        return user(EMAIL).roles("ADMIN");
     }
 }

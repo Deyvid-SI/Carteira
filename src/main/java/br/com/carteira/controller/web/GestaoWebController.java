@@ -13,6 +13,7 @@ import br.com.carteira.service.AcaoService;
 import br.com.carteira.service.CorretoraService;
 import br.com.carteira.service.NegociacaoService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -42,6 +43,7 @@ public class GestaoWebController {
     }
 
     @PostMapping("/corretoras")
+    @PreAuthorize("hasRole('ADMIN')")
     public String cadastrarCorretora(@Valid @ModelAttribute("corretoraForm") CadastrarCorretoraRequest request,
                                      BindingResult binding, Model model, RedirectAttributes redirect) {
         if (binding.hasErrors()) {
@@ -68,6 +70,7 @@ public class GestaoWebController {
     }
 
     @PostMapping("/acoes")
+    @PreAuthorize("hasRole('ADMIN')")
     public String cadastrarAcao(@Valid @ModelAttribute("acaoForm") CadastrarAcaoRequest request,
                                 BindingResult binding, Model model, RedirectAttributes redirect) {
         if (binding.hasErrors()) return acoesComErros(model);
@@ -82,6 +85,7 @@ public class GestaoWebController {
     }
 
     @PostMapping("/acoes/{id}/atualizar")
+    @PreAuthorize("hasRole('ADMIN')")
     public String atualizarCotacao(@PathVariable Long id, RedirectAttributes redirect) {
         try {
             acaoService.atualizarCotacao(id);
@@ -93,6 +97,7 @@ public class GestaoWebController {
     }
 
     @PostMapping("/acoes/{id}/posicao")
+    @PreAuthorize("hasRole('ADMIN')")
     public String atualizarPosicao(@PathVariable Long id,
                                    @RequestParam BigDecimal quantidade,
                                    @RequestParam BigDecimal precoMedio,
@@ -124,6 +129,7 @@ public class GestaoWebController {
     }
 
     @PostMapping("/negociacoes")
+    @PreAuthorize("hasRole('ADMIN')")
     public String registrarNegociacao(
             @Valid @ModelAttribute("negociacaoForm") RegistrarNegociacaoRequest request,
             BindingResult binding, Model model, RedirectAttributes redirect) {

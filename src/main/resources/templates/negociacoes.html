@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,7 +18,7 @@
     <div class="alert error" th:if="${erro}" th:text="${erro}"></div>
 
     <section class="management-grid trade-layout">
-        <article class="panel form-panel">
+        <article class="panel form-panel" sec:authorize="hasRole('ADMIN')">
             <div class="panel-heading"><div><p class="eyebrow">NOVA OPERAÇÃO</p><h2>Registrar negociação</h2></div></div>
             <p class="panel-description">A cotação atual aparece como sugestão, mas você pode informar o preço real da compra ou venda. A taxa permanece automática em zero.</p>
             <form class="stack-form" th:action="@{/gestao/negociacoes}" th:object="${negociacaoForm}" method="post">
@@ -75,6 +75,11 @@
                 <div class="info-box"><span>i</span><p><strong>Execução controlada</strong>Você define o preço da operação. A taxa é sempre zero e vendas acima do saldo são recusadas.</p></div>
                 <button class="button primary wide" id="tradeSubmit" type="submit">Registrar operação <span>→</span></button>
             </form>
+        </article>
+
+        <article class="panel form-panel" sec:authorize="!hasRole('ADMIN')">
+            <div class="panel-heading"><div><p class="eyebrow">SOMENTE CONSULTA</p><h2>Registro de operações restrito</h2></div></div>
+            <p class="panel-description">Somente administradores registram compras e vendas. Sua conta consulta a carteira, os gráficos e o histórico.</p>
         </article>
 
         <article class="panel table-panel management-table trade-history">

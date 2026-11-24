@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,7 +12,7 @@
 <main class="app-main portal-main">
     <header class="topbar portal-topbar">
         <div><p class="eyebrow">LINHA DO TEMPO</p><h1>Histórico da carteira</h1><p class="muted">Todas as compras e vendas registradas, sem o limite da tela de negociação.</p></div>
-        <a class="button primary" th:href="@{/gestao/negociacoes}">＋ Nova operação</a>
+        <a class="button primary" sec:authorize="hasRole('ADMIN')" th:href="@{/gestao/negociacoes}">＋ Nova operação</a>
     </header>
 
     <section class="portal-summary-grid" aria-label="Resumo do histórico">

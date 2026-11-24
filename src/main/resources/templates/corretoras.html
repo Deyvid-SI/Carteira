@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Corretoras · Carteira</title><script th:src="@{/js/theme.js}"></script><link rel="stylesheet" th:href="@{/css/app.css}">
@@ -10,7 +10,7 @@
     <header class="topbar"><div><p class="eyebrow">INSTITUIÇÕES</p><h1>Corretoras</h1><p class="muted">Dados empresariais, endereço e autorização verificados em fontes públicas.</p></div><a class="button secondary" th:href="@{/dashboard}">← Dashboard</a></header>
     <div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
     <section class="management-grid">
-        <article class="panel form-panel">
+        <article class="panel form-panel" sec:authorize="hasRole('ADMIN')">
             <div class="panel-heading"><div><p class="eyebrow">NOVA CORRETORA</p><h2>Validar instituição</h2></div></div>
             <p class="panel-description">Razão social, situação cadastral e registro na CVM são preenchidos automaticamente.</p>
             <form class="stack-form" th:action="@{/gestao/corretoras}" th:object="${corretoraForm}" method="post">
@@ -22,6 +22,11 @@
                 <button class="button primary wide" type="submit">Consultar e cadastrar <span>→</span></button>
             </form>
         </article>
+        <article class="panel form-panel" sec:authorize="!hasRole('ADMIN')">
+            <div class="panel-heading"><div><p class="eyebrow">SOMENTE CONSULTA</p><h2>Cadastro de corretoras restrito</h2></div></div>
+            <p class="panel-description">Somente administradores cadastram corretoras. Sua conta consulta a carteira, os gráficos e o histórico.</p>
+        </article>
+
         <article class="panel table-panel management-table">
             <div class="panel-heading"><div><p class="eyebrow">TABELA</p><h2>Instituições validadas</h2></div><span class="count-badge" th:text="${#lists.size(corretoras) + ' corretoras'}">0</span></div>
             <div class="table-scroll"><table><thead><tr><th>Instituição</th><th>CNPJ</th><th>Localização</th><th>Situação</th><th>CVM</th></tr></thead><tbody>

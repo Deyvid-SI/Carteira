@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ativos · Carteira</title><script th:src="@{/js/theme.js}"></script><link rel="stylesheet" th:href="@{/css/app.css}">
@@ -11,7 +11,7 @@
     <div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
     <div class="alert error" th:if="${erro}" th:text="${erro}"></div>
     <section class="management-grid">
-        <article class="panel form-panel">
+        <article class="panel form-panel" sec:authorize="hasRole('ADMIN')">
             <div class="panel-heading"><div><p class="eyebrow">NOVO ATIVO</p><h2>Buscar por ticker</h2></div></div>
             <p class="panel-description">O cadastro só acontece depois que o ticker é encontrado no provedor do mercado selecionado.</p>
             <form class="stack-form" th:action="@{/gestao/acoes}" th:object="${acaoForm}" method="post">
@@ -30,12 +30,17 @@
             </form>
         </article>
 
+        <article class="panel form-panel" sec:authorize="!hasRole('ADMIN')">
+            <div class="panel-heading"><div><p class="eyebrow">SOMENTE CONSULTA</p><h2>Cadastro de ativos restrito</h2></div></div>
+            <p class="panel-description">Somente administradores cadastram ativos e atualizam cotações e posições. Sua conta consulta a carteira, os gráficos e o histórico.</p>
+        </article>
+
         <article class="panel table-panel management-table">
             <div class="panel-heading"><div><p class="eyebrow">TABELA</p><h2>Ativos cadastrados</h2></div><span class="count-badge" th:text="${#lists.size(acoes) + ' ativos'}">0 ativos</span></div>
             <div class="table-scroll">
                 <table><thead><tr><th>Ativo</th><th>Posição</th><th>Cotação</th><th>Investido</th><th>Valor atual</th><th>Resultado</th><th>Dia</th><th>Ações</th></tr></thead>
                     <tbody>
-                    <tr th:if="${#lists.isEmpty(acoes)}"><td colspan="8" class="table-empty">Nenhum ativo cadastrado. Use o formulário ao lado.</td></tr>
+                    <tr th:if="${#lists.isEmpty(acoes)}"><td colspan="8" class="table-empty">Nenhum ativo cadastrado.</td></tr>
                     <tr th:each="acao : ${acoes}">
                         <td><div class="asset-cell"><span class="ticker-mark logo-mark"><img th:src="${acao.logoUrl}" th:alt="${'Logo da ' + acao.nomeEmpresa}" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><b class="logo-fallback" hidden th:text="${#strings.substring(acao.ticker, 0, 1)}">P</b></span><span><strong th:text="${acao.ticker}">PETR4</strong><small th:text="${acao.nomeEmpresa}">Empresa</small></span></div></td>
                         <td><strong th:text="${#numbers.formatInteger(acao.quantidade, 1) + ' un.'}">0 un.</strong><small class="table-sub" th:text="${'PM ' + acao.moeda + ' ' + #numbers.formatDecimal(acao.precoMedio, 1, 2, 'COMMA')}">PM 0</small></td>
@@ -44,7 +49,7 @@
                         <td><strong th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.valorAtual, 1, 2, 'COMMA')}">BRL 0,00</strong></td>
                         <td><span th:class="${acao.resultado.signum() >= 0} ? 'variation positive' : 'variation negative'" th:text="${acao.moeda + ' ' + #numbers.formatDecimal(acao.resultado, 1, 2, 'COMMA')}">0</span><small class="table-sub" th:text="${#numbers.formatDecimal(acao.rentabilidade, 1, 2, 'COMMA') + '%'}">0%</small></td>
                         <td><span th:class="${acao.variacaoPercentual != null and acao.variacaoPercentual.signum() >= 0} ? 'variation positive' : 'variation negative'" th:text="${acao.variacaoPercentual == null ? '—' : #numbers.formatDecimal(acao.variacaoPercentual, 1, 2, 'COMMA') + '%'}">0%</span></td>
-                        <td><div class="row-actions"><a class="icon-button action-link" th:href="@{/gestao/negociacoes(acaoId=${acao.id})}" title="Comprar ou vender">⇄</a><form th:action="@{/gestao/acoes/{id}/atualizar(id=${acao.id})}" method="post"><button class="icon-button" type="submit" title="Buscar cotação no provedor">↻</button></form></div></td>
+                        <td><div class="row-actions" sec:authorize="hasRole('ADMIN')"><a class="icon-button action-link" th:href="@{/gestao/negociacoes(acaoId=${acao.id})}" title="Comprar ou vender">⇄</a><form th:action="@{/gestao/acoes/{id}/atualizar(id=${acao.id})}" method="post"><button class="icon-button" type="submit" title="Buscar cotação no provedor">↻</button></form></div><span class="table-sub" sec:authorize="!hasRole('ADMIN')">—</span></td>
                     </tr>
                     </tbody>
                 </table>

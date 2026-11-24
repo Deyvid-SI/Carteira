@@ -139,7 +139,7 @@ class SecurityFlowTest {
 
     @Test
     void deveRenderizarNegociacaoComPrecoEditavelESemTaxaManual() throws Exception {
-        mvc.perform(get("/gestao/negociacoes").with(user("teste@carteira.com").roles("USER")))
+        mvc.perform(get("/gestao/negociacoes").with(user("teste@carteira.com").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("negociacoes"))
                 .andExpect(content().string(containsString("Preço da compra ou venda")))
