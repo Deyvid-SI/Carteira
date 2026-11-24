@@ -65,6 +65,23 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void unicoAdministradorPodeTerOCadastroEditadoSemPerderOPapel() {
+        Usuario admin = usuario(1L, "admin@carteira.com");
+        admin.setPapel(Papel.ADMIN);
+        when(repository.findById(1L)).thenReturn(Optional.of(admin));
+        when(repository.findByEmailIgnoreCase("admin@carteira.com")).thenReturn(Optional.of(admin));
+        when(repository.countByPapelAndAtivoTrue(Papel.ADMIN)).thenReturn(1L);
+
+        Usuario atualizado = service.atualizar(1L,
+                new UsuarioUpdateRequest("Administrador Principal", "admin@carteira.com", Papel.ADMIN, true));
+
+        assertThat(atualizado.getNome()).isEqualTo("Administrador Principal");
+        assertThat(atualizado.getPapel()).isEqualTo(Papel.ADMIN);
+        assertThat(atualizado.isAtivo()).isTrue();
+        verify(atividades).registrar(AcaoAdmin.ALTEROU_CADASTRO, "admin@carteira.com", "Papel: Administrador, ativa");
+    }
+
+    @Test
     void atualizacaoPodeManterOProprioEmail() {
         Usuario existente = usuario(1L, "ana@carteira.com");
         when(repository.findById(1L)).thenReturn(Optional.of(existente));
