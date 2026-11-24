@@ -1,22 +1,56 @@
 {
   "info": {
     "name": "Carteira de Ações",
-    "description": "Endpoints do trabalho acadêmico. Execute primeiro 'Autenticação > Login': o script pós-resposta salva o JWT na variável {{token}}, usada como Bearer Token por todas as outras requisições.",
+    "description": "Endpoints do trabalho acadêmico. Importe também o environment 'Carteira de Ações - Local' (postman/Carteira-Acao-Local.postman_environment.json), preencha 'senha' com a senha do administrador e execute 'Autenticação > Login': o script pós-resposta salva o JWT na variável {{token}} do environment, usada como Bearer Token pelas demais requisições. A pasta 'Experimentos' reproduz os testes manuais das Aulas 13 e 14; cada requisição confere o código HTTP esperado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
     "bearer": [
-      { "key": "token", "value": "{{token}}", "type": "string" }
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "email", "value": "admin@carteira.com" },
-    { "key": "senha", "value": "troque-esta-senha" },
-    { "key": "token", "value": "" },
-    { "key": "acaoId", "value": "1" },
-    { "key": "usuarioId", "value": "2" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": "admin@carteira.com"
+    },
+    {
+      "key": "senha",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "acaoId",
+      "value": "1"
+    },
+    {
+      "key": "usuarioId",
+      "value": "2"
+    },
+    {
+      "key": "tokenUser",
+      "value": ""
+    },
+    {
+      "key": "emailUser",
+      "value": ""
+    },
+    {
+      "key": "senhaUser",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -31,37 +65,373 @@
                 "type": "text/javascript",
                 "exec": [
                   "const resposta = pm.response.json();",
-                  "pm.collectionVariables.set(\"token\", resposta.token);"
+                  "pm.environment.set(\"token\", resposta.token);",
+                  "pm.collectionVariables.set(\"token\", resposta.token);",
+                  "pm.test(\"login aceito (200)\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"senha\": \"{{senha}}\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"senha\": \"{{senha}}\"\n}"
+            },
             "url": "{{baseUrl}}/api/auth/login"
           }
         },
-        { "name": "Usuário do token", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" } },
+        {
+          "name": "Usuário do token",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
         {
           "name": "Sem token (espera 401)",
-          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/acoes" }
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Experimentos (Aulas 13 e 14)",
+      "description": "Rode depois de 'Autenticação > Login'. Para os itens de USER, preencha emailUser e senhaUser no environment com uma conta de papel USER criada pelo administrador.",
+      "item": [
+        {
+          "name": "Aula 13 · 1. Sem cabeçalho Authorization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"acesso sem token negado (401)\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Aula 13 · 2. Senha incorreta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"login com senha errada negado (401)\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"senha\": \"SenhaErrada123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Aula 13 · 3. Token adulterado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"token alterado negado (401)\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}adulterado"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Aula 13 · 4. Token correto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"token válido aceito (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes",
+            "header": []
+          }
+        },
+        {
+          "name": "Login como USER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const resposta = pm.response.json();",
+                  "pm.environment.set(\"tokenUser\", resposta.token);",
+                  "pm.collectionVariables.set(\"tokenUser\", resposta.token);",
+                  "pm.test(\"login aceito (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailUser}}\",\n  \"senha\": \"{{senhaUser}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Aula 14 · USER consulta ações",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"USER pode consultar (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenUser}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aula 14 · USER tenta cadastrar ação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"USER não cadastra (403)\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/acoes",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenUser}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Aula 14 · USER tenta atualizar posição",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"USER não altera (403)\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/acoes/{{acaoId}}/posicao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenUser}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantidade\": 10,\n  \"precoMedio\": 20\n}"
+            }
+          }
+        },
+        {
+          "name": "Aula 14 · USER tenta listar usuários",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"USER não gerencia contas (403)\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenUser}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aula 14 · ADMIN lista usuários",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ADMIN gerencia contas (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios",
+            "header": []
+          }
         }
       ]
     },
     {
       "name": "Usuários (somente ADMIN)",
       "item": [
-        { "name": "Listar usuários", "request": { "method": "GET", "url": "{{baseUrl}}/api/usuarios?page=0&size=20" } },
-        { "name": "Buscar usuário", "request": { "method": "GET", "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}" } },
+        {
+          "name": "Listar usuários",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios?page=0&size=20"
+          }
+        },
+        {
+          "name": "Buscar usuário",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
+          }
+        },
         {
           "name": "Cadastrar usuário USER",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"senha\": \"SenhaDoAluno123\",\n  \"papel\": \"USER\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"senha\": \"SenhaDoAluno123\",\n  \"papel\": \"USER\"\n}"
+            },
             "url": "{{baseUrl}}/api/usuarios"
           }
         },
@@ -69,8 +439,16 @@
           "name": "Alterar papel e situação",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"papel\": \"USER\",\n  \"ativo\": false\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"papel\": \"USER\",\n  \"ativo\": false\n}"
+            },
             "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
           }
         },
@@ -78,8 +456,16 @@
           "name": "Definir nova senha",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"senha\": \"NovaSenha456\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"NovaSenha456\"\n}"
+            },
             "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/senha"
           }
         }
@@ -92,8 +478,16 @@
           "name": "Cadastrar ação brasileira",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}"
+            },
             "url": "{{baseUrl}}/api/acoes"
           }
         },
@@ -101,23 +495,103 @@
           "name": "Cadastrar ação americana",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"ticker\": \"IBM\",\n  \"mercado\": \"ESTADOS_UNIDOS\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"IBM\",\n  \"mercado\": \"ESTADOS_UNIDOS\"\n}"
+            },
             "url": "{{baseUrl}}/api/acoes"
           }
         },
-        { "name": "Listar ações", "request": { "method": "GET", "url": "{{baseUrl}}/api/acoes?page=0&size=20" } },
-        { "name": "Buscar por ticker", "request": { "method": "GET", "url": "{{baseUrl}}/api/acoes/ticker/PETR4" } },
-        { "name": "Atualizar cotação", "request": { "method": "PUT", "url": "{{baseUrl}}/api/acoes/{{acaoId}}/atualizar-cotacao" } },
-        { "name": "Atualizar posição", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}" }, "url": "{{baseUrl}}/api/acoes/{{acaoId}}/posicao" } }
+        {
+          "name": "Listar ações",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes?page=0&size=20"
+          }
+        },
+        {
+          "name": "Buscar por ticker",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/acoes/ticker/PETR4"
+          }
+        },
+        {
+          "name": "Atualizar cotação",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/acoes/{{acaoId}}/atualizar-cotacao"
+          }
+        },
+        {
+          "name": "Atualizar posição",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}"
+            },
+            "url": "{{baseUrl}}/api/acoes/{{acaoId}}/posicao"
+          }
+        }
       ]
     },
     {
       "name": "Negociações",
       "item": [
-        { "name": "Registrar compra", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}" }, "url": "{{baseUrl}}/api/negociacoes" } },
-        { "name": "Registrar venda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}" }, "url": "{{baseUrl}}/api/negociacoes" } },
-        { "name": "Listar negociações", "request": { "method": "GET", "url": "{{baseUrl}}/api/negociacoes?page=0&size=20" } }
+        {
+          "name": "Registrar compra",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/negociacoes"
+          }
+        },
+        {
+          "name": "Registrar venda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/negociacoes"
+          }
+        },
+        {
+          "name": "Listar negociações",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/negociacoes?page=0&size=20"
+          }
+        }
       ]
     },
     {
@@ -127,15 +601,41 @@
           "name": "Cadastrar corretora",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cnpj\": \"02.332.886/0001-04\",\n  \"cep\": \"22440-032\",\n  \"numero\": \"153\",\n  \"complemento\": \"Sala 201\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj\": \"02.332.886/0001-04\",\n  \"cep\": \"22440-032\",\n  \"numero\": \"153\",\n  \"complemento\": \"Sala 201\"\n}"
+            },
             "url": "{{baseUrl}}/api/corretoras"
           }
         },
-        { "name": "Listar corretoras", "request": { "method": "GET", "url": "{{baseUrl}}/api/corretoras?page=0&size=20" } },
-        { "name": "Buscar por CNPJ", "request": { "method": "GET", "url": "{{baseUrl}}/api/corretoras/cnpj/02332886000104" } }
+        {
+          "name": "Listar corretoras",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/corretoras?page=0&size=20"
+          }
+        },
+        {
+          "name": "Buscar por CNPJ",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/corretoras/cnpj/02332886000104"
+          }
+        }
       ]
     },
-    { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/dados" } }
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/dashboard/dados"
+      }
+    }
   ]
 }
