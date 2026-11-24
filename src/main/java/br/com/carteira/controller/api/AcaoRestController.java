@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +22,7 @@ public class AcaoRestController {
     public AcaoRestController(AcaoService service) { this.service = service; }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar uma ação após validar o ticker")
     public AcaoResponse cadastrar(@Valid @RequestBody CadastrarAcaoRequest request) {
@@ -44,12 +46,14 @@ public class AcaoRestController {
     }
 
     @PutMapping("/{id}/atualizar-cotacao")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Atualizar a cotação na API externa")
     public AcaoResponse atualizar(@PathVariable Long id) {
         return AcaoResponse.from(service.atualizarCotacao(id));
     }
 
     @PutMapping("/{id}/posicao")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Atualizar quantidade e preço médio da posição")
     public AcaoResponse atualizarPosicao(@PathVariable Long id, @Valid @RequestBody AtualizarPosicaoRequest request) {
         return AcaoResponse.from(service.atualizarPosicao(id, request));

@@ -2,6 +2,7 @@ package br.com.carteira.controller;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -71,6 +73,32 @@ class CarteiraApiIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = EMAIL, roles = "USER")
+    @DisplayName("Aula 14: USER consulta a carteira, mas recebe 403 em toda operação de escrita")
+    void userSomenteConsulta() throws Exception {
+        mvc.perform(get("/api/acoes")).andExpect(status().isOk());
+        mvc.perform(get("/api/corretoras")).andExpect(status().isOk());
+        mvc.perform(get("/api/negociacoes")).andExpect(status().isOk());
+        mvc.perform(get("/api/dashboard/dados")).andExpect(status().isOk());
+
+        mvc.perform(post("/api/acoes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ticker\":\"PETR4\",\"mercado\":\"BRASIL\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/acoes/{id}/atualizar-cotacao", 1))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/acoes/{id}/posicao", 1).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantidade\":10,\"precoMedio\":20}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/corretoras").contentType(MediaType.APPLICATION_JSON).content(CORPO_CORRETORA))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/negociacoes").contentType(MediaType.APPLICATION_JSON)
+                        .content(negociacao(1, "COMPRA", 1, "10")))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(gateway, brasilApi, viaCep);
+    }
+
+    @Test
     @DisplayName("POST /api/acoes valida o ticker e devolve os cálculos da posição")
     void deveCadastrarAcaoComPosicaoInicial() throws Exception {
         when(gateway.buscar("PETR4")).thenReturn(cotacao("40"));
@@ -92,14 +120,14 @@ class CarteiraApiIntegrationTest {
     void deveConsultarAcaoCadastrada() throws Exception {
         long id = cadastrarAcao();
 
-        mvc.perform(get("/api/acoes").param("page", "0").param("size", "5").with(investidor()))
+        mvc.perform(get("/api/acoes").param("page", "0").param("size", "5").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].ticker").value("PETR4"))
                 .andExpect(jsonPath("$.totalElements").value(1));
-        mvc.perform(get("/api/acoes/{id}", id).with(investidor()))
+        mvc.perform(get("/api/acoes/{id}", id).with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id));
-        mvc.perform(get("/api/acoes/ticker/{ticker}", "petr4").with(investidor()))
+        mvc.perform(get("/api/acoes/ticker/{ticker}", "petr4").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id));
     }
@@ -110,7 +138,7 @@ class CarteiraApiIntegrationTest {
         long id = cadastrarAcao();
         when(gateway.buscar("PETR4")).thenReturn(cotacao("55"));
 
-        mvc.perform(put("/api/acoes/{id}/atualizar-cotacao", id).with(investidor()))
+        mvc.perform(put("/api/acoes/{id}/atualizar-cotacao", id).with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cotacaoAtual").value(55));
     }
@@ -142,7 +170,7 @@ class CarteiraApiIntegrationTest {
                 .andExpect(jsonPath("$.detail").value("Este ticker já está cadastrado na sua carteira."))
                 .andExpect(jsonPath("$.instance").value("/api/acoes"))
                 .andExpect(jsonPath("$.timestamp").exists());
-        mvc.perform(get("/api/acoes/ticker/{ticker}", "XXXX3").with(investidor()))
+        mvc.perform(get("/api/acoes/ticker/{ticker}", "XXXX3").with(administrador()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Recurso não encontrado"));
     }
@@ -175,7 +203,7 @@ class CarteiraApiIntegrationTest {
         mvc.perform(json(post("/api/negociacoes"), negociacao(id, "VENDA", 4, "40")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.resultadoRealizado").value(40.0));
-        mvc.perform(get("/api/negociacoes").with(investidor()))
+        mvc.perform(get("/api/negociacoes").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.content[0].tipo").value("VENDA"));
@@ -217,16 +245,16 @@ class CarteiraApiIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         Number id = JsonPath.read(corpo, "$.id");
 
-        mvc.perform(get("/api/corretoras").with(investidor()))
+        mvc.perform(get("/api/corretoras").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].cnpj").value(CNPJ));
-        mvc.perform(get("/api/corretoras/{id}", id).with(investidor()))
+        mvc.perform(get("/api/corretoras/{id}", id).with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.razaoSocial").value("XP CORRETORA"));
-        mvc.perform(get("/api/corretoras/cnpj/{cnpj}", CNPJ).with(investidor()))
+        mvc.perform(get("/api/corretoras/cnpj/{cnpj}", CNPJ).with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id));
-        mvc.perform(get("/api/corretoras/{id}", 999_999).with(investidor()))
+        mvc.perform(get("/api/corretoras/{id}", 999_999).with(administrador()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("Corretora não encontrada na sua carteira."));
     }
@@ -249,7 +277,7 @@ class CarteiraApiIntegrationTest {
     void deveDevolverDadosDoDashboard() throws Exception {
         cadastrarAcao();
 
-        mvc.perform(get("/api/dashboard/dados").with(investidor()))
+        mvc.perform(get("/api/dashboard/dados").with(administrador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAtivos").value(1))
                 .andExpect(jsonPath("$.totalCorretoras").value(0));
@@ -282,10 +310,10 @@ class CarteiraApiIntegrationTest {
     }
 
     private static MockHttpServletRequestBuilder json(MockHttpServletRequestBuilder request, String corpo) {
-        return request.with(investidor()).contentType(MediaType.APPLICATION_JSON).content(corpo);
+        return request.with(administrador()).contentType(MediaType.APPLICATION_JSON).content(corpo);
     }
 
-    private static UserRequestPostProcessor investidor() {
-        return user(EMAIL).roles("USER");
+    private static UserRequestPostProcessor administrador() {
+        return user(EMAIL).roles("ADMIN");
     }
 }
