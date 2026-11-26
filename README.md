@@ -38,7 +38,7 @@ O visual usa como referência os padrões de navegação e densidade de informa�
 
 ## Executar localmente com H2
 
-Pré-requisitos: Java 17+ e Maven 3.9+.
+Pré-requisitos: Java 17+. O Maven 3.9.11 vem pelo Maven Wrapper: use `.\mvnw.cmd` no Windows ou `./mvnw` no Linux/macOS, sem instalar nada.
 
 A API exige a variável `JWT_SECRET` com pelo menos 32 bytes aleatórios. Sem ela, a aplicação não inicia e informa o motivo. Gere uma chave e coloque-a no `.env` (ou na configuração de execução da IDE):
 
@@ -47,7 +47,7 @@ $bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Cr
 ```
 
 ```powershell
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Acesse [http://localhost:8080](http://localhost:8080). O banco H2 é criado em `./data` e o Liquibase controla sua estrutura.
@@ -58,7 +58,7 @@ O login é a única tela pública: não existe cadastro aberto, e somente um adm
 $env:DEMO_USER_ENABLED="true"
 $env:DEMO_USER_EMAIL="admin@carteira.com"
 $env:DEMO_USER_PASSWORD="defina-uma-senha-forte"
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Não existe senha-padrão no código. Se `DEMO_USER_ENABLED=true`, `DEMO_USER_PASSWORD` passa a ser obrigatória.
@@ -70,7 +70,7 @@ A brapi permite testar alguns tickers (como `PETR4`, `VALE3`, `MGLU3` e `ITUB4`)
 ```powershell
 $env:BRAPI_TOKEN="seu-token-brapi"
 $env:ALPHA_VANTAGE_API_KEY="sua-chave-alpha-vantage"
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Sem chave própria da Alpha Vantage, a chave pública `demo` normalmente permite apenas o ticker `IBM`.
@@ -210,7 +210,7 @@ $env:SPRING_PROFILES_ACTIVE="dev"
 $env:DB_URL="jdbc:postgresql://localhost:5432/carteira_acao"
 $env:DB_USERNAME="carteira"
 $env:DB_PASSWORD="sua-senha"
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 O projeto importa automaticamente o arquivo `.env` da raiz como configuração opcional. Ele já está ignorado pelo Git e pode ser usado pelo Spring Boot local e pelo Docker Compose. Valores fornecidos diretamente pelo sistema operacional continuam tendo prioridade.
@@ -248,7 +248,7 @@ Copy-Item .env.example .env
 Edite `.env`, defina uma senha local e uma `JWT_SECRET` própria (o Compose recusa subir sem ela) e execute:
 
 ```powershell
-mvn test
+.\mvnw.cmd test
 docker compose config --services
 docker compose up -d --build
 docker compose ps
@@ -337,8 +337,8 @@ erDiagram
 ## Testes e cobertura
 
 ```powershell
-mvn test           # apenas executa os testes
-mvn clean verify   # testes + relatório JaCoCo + portão de cobertura
+.\mvnw.cmd test           # apenas executa os testes
+.\mvnw.cmd clean verify   # testes + relatório JaCoCo + portão de cobertura
 ```
 
 Os testes cobrem validação algorítmica de CNPJ, duplicidade por conta, isolamento entre usuários, saldo inteiro, integrações, proteção do dashboard, restrição administrativa do OpenAPI, cálculos de compra e venda, proteção de saldo e criação do schema pelo Liquibase. A segurança é verificada em dois níveis:
@@ -353,13 +353,13 @@ As demais camadas seguem a mesma divisão, e nenhum teste acessa as APIs externa
 - `AcaoServiceTest`, `CorretoraServiceTest`, `NegociacaoServiceTest`, `DashboardServiceTest` e `UsuarioAtualServiceTest` verificam as regras com repositórios e gateways simulados, incluindo valores de fronteira como vender exatamente o saldo;
 - `GestaoWebIntegrationTest`, `CadastroWebIntegrationTest` e `CarteiraApiIntegrationTest` usam MVC, validação, CSRF, Liquibase e H2 reais; apenas os clientes externos são dublês (`@MockitoBean`).
 
-O `mvn clean verify` gera `target/site/jacoco/index.html` (também `jacoco.xml` e `jacoco.csv`). Verde indica código executado, vermelho não executado e amarelo uma decisão com apenas um dos caminhos exercitado.
+O `.\mvnw.cmd clean verify` (ou `./mvnw clean verify`) gera `target/site/jacoco/index.html` (também `jacoco.xml` e `jacoco.csv`). Verde indica código executado, vermelho não executado e amarelo uma decisão com apenas um dos caminhos exercitado.
 
 | Medição | Testes | Linhas | Ramos |
 |---|---:|---:|---:|
 | Antes das aulas 13–15 | 32 | 54,9% | 32,0% |
 | Após implementar as aulas 13 e 14 | 84 | 65,5% | 40,7% |
-| Atual | 290 | 99,5% | 95,6% |
+| Atual | 284 | 99,5% | 96,4% |
 | Portão versionado no `pom.xml` (meta da aula) | — | 80% | 80% |
 
 Não é permitido manter a meta reduzindo limites, criando exclusões arbitrárias ou escrevendo testes sem asserções: o `pom.xml` não possui nenhuma exclusão de cobertura.
@@ -367,10 +367,20 @@ Não é permitido manter a meta reduzindo limites, criando exclusões arbitrári
 Para observar o portão reprovando um build com todos os testes verdes, exija um valor acima do medido:
 
 ```powershell
-mvn verify "-Djacoco.minimum.branch.coverage=0.99"
+.\mvnw.cmd verify "-Djacoco.minimum.branch.coverage=0.99"
 ```
 
 Cobertura mede o que foi executado, não o que foi verificado: ela é um diagnóstico e um piso, não uma prova de correção. Para conferir isso, 16 alterações propositais foram aplicadas a uma cópia do código, como trocar `>` por `>=` no saldo de venda ou remover o `@PreAuthorize` de `/api/usuarios`. Com 99,5% de linhas, duas ainda passaram despercebidas: a validade gravada no JWT e o campo `erro` do ViaCEP. Os testes foram reforçados e hoje as 16 são detectadas. Essa amostra foi escolhida manualmente e não substitui uma ferramenta completa de mutação, como o PIT.
+
+## Entregas das aulas 13, 14 e 15
+
+Cada aula do repositório `suporteos2025` tem um documento com o que foi implementado, o checklist, os experimentos executados e as respostas da atividade avaliativa:
+
+- [Aula 13 — Login e proteção da API com JWT](docs/entregas/AULA-13-LOGIN-COM-JWT.md)
+- [Aula 14 — Controle de acesso baseado em papéis](docs/entregas/AULA-14-CONTROLE-DE-ACESSO.md)
+- [Aula 15 — Testes de software, TDD e cobertura](docs/entregas/AULA-15-TESTES-E-COBERTURA.md)
+
+O workflow `.github/workflows/testes.yml` executa `./mvnw --batch-mode clean verify` a cada push e guarda o relatório do JaCoCo como artefato.
 
 ## OpenSpec
 
