@@ -50,6 +50,10 @@
     {
       "key": "senhaUser",
       "value": ""
+    },
+    {
+      "key": "emailAluno",
+      "value": ""
     }
   ],
   "item": [
@@ -95,7 +99,18 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/auth/me"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"token identifica a conta (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Sem token (espera 401)",
@@ -105,7 +120,18 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/api/acoes"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"acesso sem token negado (401)\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -405,20 +431,6 @@
       "name": "Usuários (somente ADMIN)",
       "item": [
         {
-          "name": "Listar usuários",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/usuarios?page=0&size=20"
-          }
-        },
-        {
-          "name": "Buscar usuário",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
-          }
-        },
-        {
           "name": "Cadastrar usuário USER",
           "request": {
             "method": "POST",
@@ -430,10 +442,62 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"senha\": \"SenhaDoAluno123\",\n  \"papel\": \"USER\"\n}"
+              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno{{$timestamp}}@carteira.com\",\n  \"senha\": \"SenhaDoAluno123\",\n  \"papel\": \"USER\"\n}"
             },
             "url": "{{baseUrl}}/api/usuarios"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"conta criada (201)\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { const corpo = pm.response.json();",
+                  "  pm.environment.set(\"usuarioId\", corpo.id); pm.collectionVariables.set(\"usuarioId\", corpo.id); }",
+                  "if (pm.response.code < 300) { const corpo = pm.response.json();",
+                  "  pm.environment.set(\"emailAluno\", corpo.email); pm.collectionVariables.set(\"emailAluno\", corpo.email); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuários",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios?page=0&size=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ADMIN lista contas (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar usuário",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"conta encontrada (200)\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"resposta sem senha\", () => pm.expect(pm.response.json()).to.not.have.property(\"senha\"));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Alterar papel e situação",
@@ -447,10 +511,21 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"aluno@carteira.com\",\n  \"papel\": \"USER\",\n  \"ativo\": false\n}"
+              "raw": "{\n  \"nome\": \"Aluno Investidor\",\n  \"email\": \"{{emailAluno}}\",\n  \"papel\": \"USER\",\n  \"ativo\": false\n}"
             },
             "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"papel e situação alterados (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Definir nova senha",
@@ -467,7 +542,18 @@
               "raw": "{\n  \"senha\": \"NovaSenha456\"\n}"
             },
             "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/senha"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"senha redefinida (204)\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -489,7 +575,18 @@
               "raw": "{\n  \"ticker\": \"PETR4\",\n  \"mercado\": \"BRASIL\"\n}"
             },
             "url": "{{baseUrl}}/api/acoes"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PETR4 na carteira (201 ou 422 se já cadastrado)\", () => pm.expect(pm.response.code).to.be.oneOf([201, 422]));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Cadastrar ação americana",
@@ -506,28 +603,74 @@
               "raw": "{\n  \"ticker\": \"IBM\",\n  \"mercado\": \"ESTADOS_UNIDOS\"\n}"
             },
             "url": "{{baseUrl}}/api/acoes"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"IBM na carteira (201 ou 422 se já cadastrado)\", () => pm.expect(pm.response.code).to.be.oneOf([201, 422]));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Listar ações",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/acoes?page=0&size=20"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"lista de ações (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Buscar por ticker",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/acoes/ticker/PETR4"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PETR4 encontrada (200)\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code < 300) { const corpo = pm.response.json();",
+                  "  pm.environment.set(\"acaoId\", corpo.id); pm.collectionVariables.set(\"acaoId\", corpo.id); }"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Atualizar cotação",
           "request": {
             "method": "PUT",
             "url": "{{baseUrl}}/api/acoes/{{acaoId}}/atualizar-cotacao"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"cotação atualizada (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Atualizar posição",
@@ -544,7 +687,18 @@
               "raw": "{\n  \"quantidade\": 100,\n  \"precoMedio\": 38.50\n}"
             },
             "url": "{{baseUrl}}/api/acoes/{{acaoId}}/posicao"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"posição atualizada (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -566,7 +720,18 @@
               "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"COMPRA\",\n  \"quantidade\": 10,\n  \"precoUnitario\": 38.50,\n  \"dataNegociacao\": \"2026-08-25T10:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/negociacoes"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"compra registrada (201)\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Registrar venda",
@@ -583,14 +748,36 @@
               "raw": "{\n  \"acaoId\": {{acaoId}},\n  \"tipo\": \"VENDA\",\n  \"quantidade\": 2,\n  \"precoUnitario\": 42.75,\n  \"dataNegociacao\": \"2026-08-25T11:00:00\"\n}"
             },
             "url": "{{baseUrl}}/api/negociacoes"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"venda registrada (201)\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Listar negociações",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/negociacoes?page=0&size=20"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"lista de negociações (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -612,21 +799,54 @@
               "raw": "{\n  \"cnpj\": \"02.332.886/0001-04\",\n  \"cep\": \"22440-032\",\n  \"numero\": \"153\",\n  \"complemento\": \"Sala 201\"\n}"
             },
             "url": "{{baseUrl}}/api/corretoras"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"corretora na carteira (201 ou 422 se já cadastrado)\", () => pm.expect(pm.response.code).to.be.oneOf([201, 422]));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Listar corretoras",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/corretoras?page=0&size=20"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"lista de corretoras (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Buscar por CNPJ",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/corretoras/cnpj/02332886000104"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"corretora encontrada (200)\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -635,7 +855,18 @@
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/dashboard/dados"
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"dados do dashboard (200)\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
     }
   ]
 }
