@@ -15,6 +15,24 @@ Entrega do projeto **Carteira de Ações** para a Aula 13 do repositório `supor
 | 12. Postman | `postman/Carteira-Acao.postman_collection.json` e o environment `postman/Carteira-Acao-Local.postman_environment.json`; o login salva o token com `pm.environment.set` |
 | 13. Testes | `AuthApiIntegrationTest` (16 testes com o JWT real) e `SecurityFlowTest` |
 
+## Execução pelo Docker Compose (seção 11.2)
+
+Executada em 26/11/2026 com `docker compose up --build`, num projeto Compose separado (`-p carteira-acao-teste`), com volume e portas próprios, para não tocar nos dados locais. O ambiente foi removido no final com `docker compose down --volumes`.
+
+| Verificação | Resultado |
+|---|---|
+| Build da imagem (Maven dentro do container) e subida dos serviços | `aplicacao` e `postgres` em execução |
+| Ordem de inicialização | O PostgreSQL ficou `healthy` antes de a aplicação iniciar (`depends_on: service_healthy`) |
+| Perfil e banco | Perfil `dev` com PostgreSQL 17; aplicação pronta em cerca de 20 s |
+| Liquibase num banco vazio | Os 7 changesets aplicados (`001` a `007`), seguidos da validação do Hibernate |
+| Experimentos das Aulas 13 e 14 contra os containers, com `JWT_EXPIRATION=10s` | 19 de 19 com o resultado esperado |
+| Recriação do container da aplicação | Os dados no volume do PostgreSQL continuaram lá: a conta criada antes ainda entrou |
+| Coleção do Postman contra os containers, executada duas vezes seguidas | 31 requisições, **31 de 31 `pm.test`** nas duas execuções |
+| Portal com a conta `ADMIN` | Dashboard, gestão e `/admin` com `200`; formulários de cadastro visíveis |
+| Portal com a conta `USER` | Dashboard e gestão com `200` e aviso "Somente consulta", sem formulários; `/admin` com `403` |
+
+A primeira execução da coleção mostrou que ela só funcionava num banco vazio: o cadastro de `PETR4` recebeu `422` porque o ticker já existia na conta. A coleção foi ajustada para poder ser repetida: o e-mail do usuário de teste é único a cada execução, os cadastros de dados fixos aceitam `422` ("já cadastrado"), os ids são lidos das respostas e todas as 31 requisições têm `pm.test`.
+
 ## Experimentos obrigatórios (seção 12.4)
 
 Executados em 24/11/2026 contra a aplicação real (`.jar` gerado pelo `./mvnw`), com banco em memória e `JWT_EXPIRATION=10s`. O roteiro está em `postman/`, na pasta **Experimentos (Aulas 13 e 14)**.
