@@ -1011,6 +1011,13 @@ select { transition: color .32s ease, background-color .32s ease, border-color .
 :root[data-density="compact"] .financial-card,
 :root[data-density="compact"] .metric-card,
 :root[data-density="compact"] .summary-card { min-height: 112px; }
+/* Os indicadores contam de zero até o valor real: algarismos de mesma largura evitam que o card trema. */
+.financial-card strong,
+.metric-card strong,
+.donut-center b,
+.summary-card strong,
+.summary-card em { font-variant-numeric: tabular-nums; }
+
 :root[data-motion="reduced"] *,
 :root[data-motion="reduced"] *::before,
 :root[data-motion="reduced"] *::after {
